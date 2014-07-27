@@ -2,14 +2,14 @@ package de.uniko.sebschlicht.neo4j.graphity;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.functors.ExceptionFactory;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 
-import de.uniko.sebschlicht.neo4j.graphity.exception.InvalidFollowingId;
+import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedId;
+import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingId;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
 import de.uniko.sebschlicht.neo4j.socialnet.SocialGraph;
 import de.uniko.sebschlicht.neo4j.socialnet.model.User;
@@ -121,11 +121,11 @@ public abstract class Graphity extends SocialGraph {
     public boolean removeFollowship(String idFollowing, String idFollowed) {
         Node nFollowing = findUser(idFollowing);
         if (nFollowing == null) {
-            throw new InvalidFollowingId(idFollowing);
+            throw new UnknownFollowingId(idFollowing);
         }
         Node nFollowed = findUser(idFollowed);
         if (nFollowed == null) {
-            throw ExceptionFactory.invalidFollowedId(idFollowed);
+            throw new UnknownFollowedId(idFollowed);
         }
         return this.removeFollowship(nFollowing, nFollowed);
     }
