@@ -1,7 +1,10 @@
 package de.uniko.sebschlicht.neo4j.socialnet;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.schema.IndexDefinition;
 
 import de.uniko.sebschlicht.neo4j.socialnet.model.User;
 import de.uniko.sebschlicht.socialnet.SocialNetwork;
@@ -52,6 +55,30 @@ public abstract class SocialGraph implements SocialNetwork {
         return nUser;
     }
 
-    //TODO add methods to map from SocialNetwork-calls to neo4j-based calls
-    // e.g.: String userId -> Node nUser
+    /**
+     * Loads the index definition for a label on a certain property key.
+     * 
+     * @param label
+     *            label the index was created for
+     * @param propertyKey
+     *            property key the index was created on
+     * @return index definition - for the label on the property specified<br>
+     *         <b>null</b> - if there is no index for the label on this property
+     */
+    protected IndexDefinition loadIndexDefinition(
+            Label label,
+            String propertyKey) {
+        try (Transaction tx = this.graphDb.beginTx()) {
+            for (IndexDefinition indexDefinition : this.graphDb.schema()
+                    .getIndexes(label)) {
+                for (String indexPropertyKey : indexDefinition
+                        .getPropertyKeys()) {
+                    if (indexPropertyKey.equals(propertyKey)) {
+                        return indexDefinition;
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }
