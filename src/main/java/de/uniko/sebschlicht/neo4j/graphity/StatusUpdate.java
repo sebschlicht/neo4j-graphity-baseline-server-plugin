@@ -13,4 +13,12 @@ public class StatusUpdate {
         this.published = published;
         this.message = message;
     }
+
+    public long getPublished() {
+        return published;
+    }
+
+    public String getMessage() {
+        return message;
+    }
 }
