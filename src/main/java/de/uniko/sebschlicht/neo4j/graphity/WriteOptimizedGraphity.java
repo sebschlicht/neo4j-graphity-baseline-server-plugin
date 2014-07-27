@@ -1,54 +1,38 @@
-package de.uniko.sebschlicht.neo4j;
+package de.uniko.sebschlicht.neo4j.graphity;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
-/**
- * first social networking approach
- * 
- * @author Rene Pickhardt, Jonas Kunze, Sebastian Schlicht
- * 
- */
+import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
+
 public class WriteOptimizedGraphity extends Graphity {
 
     public WriteOptimizedGraphity(
-            final GraphDatabaseService graph) {
-        super(graph);
+            GraphDatabaseService graphDb) {
+        super(graphDb);
     }
 
-    @Override
-    public boolean createFriendship(
-            final String idFollowing,
-            final String idFollowed) {
-        Node nFollowing = this.getOrCreateUser(idFollowing);
-        Node nFollowed = this.getOrCreateUser(idFollowed);
-
+    public boolean addFollowship(Node nFollowing, Node nFollowed) {
         // try to find the node of the user followed
         for (Relationship followship : nFollowing.getRelationships(
-                SocialRelationType.FOLLOWS, Direction.OUTGOING)) {
+                EdgeType.FOLLOWS, Direction.OUTGOING)) {
             if (followship.getEndNode().equals(nFollowed)) {
                 return false;
             }
         }
 
         // create star topology
-        nFollowing.createRelationshipTo(nFollowed, SocialRelationType.FOLLOWS);
+        nFollowing.createRelationshipTo(nFollowed, EdgeType.FOLLOWS);
         return true;
     }
 
-    @Override
-    public boolean removeFriendship(
-            final String idFollowing,
-            final String idFollowed) {
-        Node nFollowing = this.getOrCreateUser(idFollowing);
-        Node nFollowed = this.getOrCreateUser(idFollowed);
-
+    public boolean removeFollowship(Node nFollowing, Node nFollowed) {
         // delete the followship if existing
         Relationship followship = null;
         for (Relationship follows : nFollowing.getRelationships(
-                Direction.OUTGOING, SocialRelationType.FOLLOWS)) {
+                Direction.OUTGOING, EdgeType.FOLLOWS)) {
             if (follows.getEndNode().equals(nFollowed)) {
                 followship = follows;
                 break;

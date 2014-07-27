@@ -7,6 +7,8 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
+import de.uniko.sebschlicht.neo4j.graphity.WriteOptimizedGraphity;
+
 public class GraphityBaselinePlugin extends ServerPlugin {
 
     private static WriteOptimizedGraphity socialGraph;
@@ -20,7 +22,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
         }
 
         try (Transaction tx = graphDb.beginTx()) {
-            if (socialGraph.createFriendship(idFollowing, idFollowed)) {
+            if (socialGraph.addFollowship(idFollowing, idFollowed)) {
                 tx.success();
                 return true;
             }
