@@ -14,8 +14,10 @@ import de.uniko.sebschlicht.socialnet.SocialNetwork;
  * 
  * @author sebschlicht
  * 
+ * @param <T>
+ *            user identifier class in use
  */
-public abstract class SocialGraph implements SocialNetwork {
+public abstract class SocialGraph<T > implements SocialNetwork {
 
     /**
      * graph database holding the social network graph
@@ -49,8 +51,8 @@ public abstract class SocialGraph implements SocialNetwork {
      * @return user node - if the user was successfully created<br>
      *         <b>null</b> - if the identifier is already in use
      */
-    public Node createUser(String userIdentifier) {
-        Node nUser = this.graphDb.createNode(NodeType.USER);
+    public Node createUser(T userIdentifier) {
+        Node nUser = graphDb.createNode(NodeType.USER);
         nUser.setProperty(User.PROP_IDENTIFIER, userIdentifier);
         return nUser;
     }
@@ -68,9 +70,9 @@ public abstract class SocialGraph implements SocialNetwork {
     protected IndexDefinition loadIndexDefinition(
             Label label,
             String propertyKey) {
-        try (Transaction tx = this.graphDb.beginTx()) {
-            for (IndexDefinition indexDefinition : this.graphDb.schema()
-                    .getIndexes(label)) {
+        try (Transaction tx = graphDb.beginTx()) {
+            for (IndexDefinition indexDefinition : graphDb.schema().getIndexes(
+                    label)) {
                 for (String indexPropertyKey : indexDefinition
                         .getPropertyKeys()) {
                     if (indexPropertyKey.equals(propertyKey)) {

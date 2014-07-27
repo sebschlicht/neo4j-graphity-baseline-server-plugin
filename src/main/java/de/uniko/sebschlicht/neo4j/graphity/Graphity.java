@@ -20,7 +20,7 @@ import de.uniko.sebschlicht.neo4j.socialnet.model.User;
  * @author sebschlicht
  * 
  */
-public abstract class Graphity extends SocialGraph {
+public abstract class Graphity extends SocialGraph<String> {
 
     /**
      * Creates a new Graphity instance using the database provided.
@@ -121,11 +121,11 @@ public abstract class Graphity extends SocialGraph {
     public boolean removeFollowship(String idFollowing, String idFollowed) {
         Node nFollowing = findUser(idFollowing);
         if (nFollowing == null) {
-            throw new UnknownFollowingId(idFollowing);
+            throw new UnknownFollowingId(idFollowing.toString());
         }
         Node nFollowed = findUser(idFollowed);
         if (nFollowed == null) {
-            throw new UnknownFollowedId(idFollowed);
+            throw new UnknownFollowedId(idFollowed.toString());
         }
         return this.removeFollowship(nFollowing, nFollowed);
     }

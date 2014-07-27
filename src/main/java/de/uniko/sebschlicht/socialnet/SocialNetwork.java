@@ -1,7 +1,7 @@
 package de.uniko.sebschlicht.socialnet;
 
 /**
- * operations to access and manipulate a social network
+ * operations to access and manipulate a social network using REST API
  * 
  * @author sebschlicht
  * 
@@ -18,6 +18,10 @@ public interface SocialNetwork {
      */
     boolean addUser(String userIdentifier);
 
+    //TODO Uses lazy approach: Ensure that the identifiers are valid and
+    // belong to an existing user if there is any mapping to external services.
+    // This can not be done wo help of external service like an user database.
+    // Therefore this task belongs to you.
     /**
      * Adds a followship between two users to the social network.
      * 
