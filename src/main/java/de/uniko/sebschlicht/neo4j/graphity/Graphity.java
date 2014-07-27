@@ -2,13 +2,14 @@ package de.uniko.sebschlicht.neo4j.graphity;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.collections.functors.ExceptionFactory;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.schema.IndexDefinition;
 
+import de.uniko.sebschlicht.neo4j.graphity.exception.InvalidFollowingId;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
 import de.uniko.sebschlicht.neo4j.socialnet.SocialGraph;
 import de.uniko.sebschlicht.neo4j.socialnet.model.User;
@@ -37,17 +38,17 @@ public abstract class Graphity extends SocialGraph {
     public void init() {
         // create user identifier index if not existing
         IndexDefinition indexUserId =
-                this.loadIndexDefinition(NodeType.USER, User.PROP_IDENTIFIER);
+                loadIndexDefinition(NodeType.USER, User.PROP_IDENTIFIER);
         if (indexUserId == null) {
-            try (Transaction tx = this.graphDb.beginTx()) {
-                this.graphDb.schema().indexFor(NodeType.USER)
+            try (Transaction tx = graphDb.beginTx()) {
+                graphDb.schema().indexFor(NodeType.USER)
                         .on(User.PROP_IDENTIFIER).create();
                 tx.success();
             }
         }
 
-        try (Transaction tx = this.graphDb.beginTx()) {
-            this.graphDb.schema().awaitIndexesOnline(10, TimeUnit.SECONDS);
+        try (Transaction tx = graphDb.beginTx()) {
+            graphDb.schema().awaitIndexesOnline(10, TimeUnit.SECONDS);
         }
     }
 
@@ -61,7 +62,7 @@ public abstract class Graphity extends SocialGraph {
      */
     protected Node findUser(String userIdentifier) {
         try (ResourceIterator<Node> users =
-                this.graphDb.findNodesByLabelAndProperty(NodeType.USER,
+                graphDb.findNodesByLabelAndProperty(NodeType.USER,
                         User.PROP_IDENTIFIER, userIdentifier).iterator()) {
             if (users.hasNext()) {
                 return users.next();
@@ -78,20 +79,20 @@ public abstract class Graphity extends SocialGraph {
      * @return user node - existing or created node representing the user
      */
     protected Node loadUser(String userIdentifier) {
-        Node nUser = this.findUser(userIdentifier);
+        Node nUser = findUser(userIdentifier);
         if (nUser != null) {
             // user is already existing
             return nUser;
         }
-        return this.createUser(userIdentifier);
+        return createUser(userIdentifier);
     }
 
     @Override
     public boolean addUser(String userIdentifier) {
-        Node nUser = this.findUser(userIdentifier);
+        Node nUser = findUser(userIdentifier);
         if (nUser == null) {
             // user identifier not in use yet
-            this.createUser(userIdentifier);
+            createUser(userIdentifier);
             return true;
         }
         return false;
@@ -99,21 +100,47 @@ public abstract class Graphity extends SocialGraph {
 
     @Override
     public boolean addFollowship(String idFollowing, String idFollowed) {
-        Node nFollowing = this.loadUser(idFollowing);
-        Node nFollowed = this.loadUser(idFollowed);
+        Node nFollowing = loadUser(idFollowing);
+        Node nFollowed = loadUser(idFollowed);
         return this.addFollowship(nFollowing, nFollowed);
     }
 
-    //TODO documentation
+    /**
+     * Adds a followship between two user nodes to the social network graph.
+     * 
+     * @param nFollowing
+     *            node of the user that wants to follow another user
+     * @param nFollowed
+     *            node of the user that will be followed
+     * @return true - if the followship was successfully created<br>
+     *         false - if this followship is already existing
+     */
     abstract protected boolean addFollowship(Node nFollowing, Node nFollowed);
 
-    //DEBUG
-    public static void main(String[] args) {
-        GraphDatabaseService graphDb =
-                new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(
-                        "/tmp/test").newGraphDatabase();
-        Graphity g = new WriteOptimizedGraphity(graphDb);
-        g.init();
-        graphDb.shutdown();
+    @Override
+    public boolean removeFollowship(String idFollowing, String idFollowed) {
+        Node nFollowing = findUser(idFollowing);
+        if (nFollowing == null) {
+            throw new InvalidFollowingId(idFollowing);
+        }
+        Node nFollowed = findUser(idFollowed);
+        if (nFollowed == null) {
+            throw ExceptionFactory.invalidFollowedId(idFollowed);
+        }
+        return this.removeFollowship(nFollowing, nFollowed);
     }
+
+    /**
+     * Removes a followship between two user nodes from the social network
+     * graph.
+     * 
+     * @param nFollowing
+     *            node of the user that wants to unfollow a user
+     * @param nFollowed
+     *            node of the user that will be unfollowed
+     * @return true - if the followship was successfully removed<br>
+     *         false - if this followship is not existing
+     */
+    abstract protected boolean
+        removeFollowship(Node nFollowing, Node nFollowed);
 }

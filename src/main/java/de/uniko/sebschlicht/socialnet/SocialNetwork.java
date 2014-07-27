@@ -1,5 +1,11 @@
 package de.uniko.sebschlicht.socialnet;
 
+/**
+ * operations to access and manipulate a social network
+ * 
+ * @author sebschlicht
+ * 
+ */
 public interface SocialNetwork {
 
     /**
@@ -13,7 +19,7 @@ public interface SocialNetwork {
     boolean addUser(String userIdentifier);
 
     /**
-     * Adds a followship to the social network.
+     * Adds a followship between two users to the social network.
      * 
      * @param idFollowing
      *            identifier of the user that wants to follow another user
@@ -23,4 +29,16 @@ public interface SocialNetwork {
      *         false - if this followship is already existing
      */
     boolean addFollowship(String idFollowing, String idFollowed);
+
+    /**
+     * Removes a followship between two users from the social network.
+     * 
+     * @param idFollowing
+     *            identifier of the user that wants to unfollow an user
+     * @param idFollowed
+     *            identifier of the user that will be unfollowed
+     * @return true - if the followship was successfully removed<br>
+     *         false - if this followship is not existing
+     */
+    boolean removeFollowship(String idFollowing, String idFollowed);
 }
