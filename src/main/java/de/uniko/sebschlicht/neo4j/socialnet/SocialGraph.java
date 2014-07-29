@@ -6,7 +6,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 
-import de.uniko.sebschlicht.neo4j.socialnet.model.User;
+import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.SocialNetwork;
 
 /**
@@ -53,7 +53,7 @@ public abstract class SocialGraph<T > implements SocialNetwork {
      */
     public Node createUser(T userIdentifier) {
         Node nUser = graphDb.createNode(NodeType.USER);
-        nUser.setProperty(User.PROP_IDENTIFIER, userIdentifier);
+        nUser.setProperty(UserProxy.PROP_IDENTIFIER, userIdentifier);
         return nUser;
     }
 

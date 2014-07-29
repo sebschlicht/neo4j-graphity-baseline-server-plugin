@@ -1,4 +1,4 @@
-package de.uniko.sebschlicht.neo4j.graphity;
+package de.uniko.sebschlicht.socialnet;
 
 // TODO documentation
 public class StatusUpdate {

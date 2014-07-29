@@ -32,6 +32,7 @@
 
     <!-- dependency versions: production -->
     <neo4j.version>2.1.2</neo4j.version>
+    <metalcon.muid>0.4.2</metalcon.muid>
   </properties>
 
   <dependencies>
@@ -45,7 +46,20 @@
       <artifactId>server-api</artifactId>
       <version>${neo4j.version}</version>
     </dependency>
+    <dependency>
+      <groupId>de.metalcon</groupId>
+      <artifactId>muid</artifactId>
+      <version>${metalcon.muid}</version>
+    </dependency>
   </dependencies>
+
+  <repositories>
+    <!-- Metalcon repository to resolve dependencies from -->
+    <repository>
+      <id>metalcon-depend</id>
+      <url>http://metalcon2.physik.uni-mainz.de:8080/mvn/</url>
+    </repository>
+  </repositories>
 
   <build>
     <plugins>

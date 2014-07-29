@@ -12,7 +12,8 @@ import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedId;
 import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingId;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
 import de.uniko.sebschlicht.neo4j.socialnet.SocialGraph;
-import de.uniko.sebschlicht.neo4j.socialnet.model.User;
+import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
+import de.uniko.sebschlicht.socialnet.StatusUpdate;
 
 /**
  * social graph for Graphity implementations
@@ -38,11 +39,11 @@ public abstract class Graphity extends SocialGraph<String> {
     public void init() {
         // create user identifier index if not existing
         IndexDefinition indexUserId =
-                loadIndexDefinition(NodeType.USER, User.PROP_IDENTIFIER);
+                loadIndexDefinition(NodeType.USER, UserProxy.PROP_IDENTIFIER);
         if (indexUserId == null) {
             try (Transaction tx = graphDb.beginTx()) {
                 graphDb.schema().indexFor(NodeType.USER)
-                        .on(User.PROP_IDENTIFIER).create();
+                        .on(UserProxy.PROP_IDENTIFIER).create();
                 tx.success();
             }
         }
@@ -63,7 +64,7 @@ public abstract class Graphity extends SocialGraph<String> {
     protected Node findUser(String userIdentifier) {
         try (ResourceIterator<Node> users =
                 graphDb.findNodesByLabelAndProperty(NodeType.USER,
-                        User.PROP_IDENTIFIER, userIdentifier).iterator()) {
+                        UserProxy.PROP_IDENTIFIER, userIdentifier).iterator()) {
             if (users.hasNext()) {
                 return users.next();
             }
@@ -102,7 +103,7 @@ public abstract class Graphity extends SocialGraph<String> {
     public boolean addFollowship(String idFollowing, String idFollowed) {
         Node nFollowing = loadUser(idFollowing);
         Node nFollowed = loadUser(idFollowed);
-        return this.addFollowship(nFollowing, nFollowed);
+        return addFollowship(nFollowing, nFollowed);
     }
 
     /**
@@ -127,7 +128,7 @@ public abstract class Graphity extends SocialGraph<String> {
         if (nFollowed == null) {
             throw new UnknownFollowedId(idFollowed.toString());
         }
-        return this.removeFollowship(nFollowing, nFollowed);
+        return removeFollowship(nFollowing, nFollowed);
     }
 
     /**
@@ -143,4 +144,25 @@ public abstract class Graphity extends SocialGraph<String> {
      */
     abstract protected boolean
         removeFollowship(Node nFollowing, Node nFollowed);
+
+    @Override
+    public String addStatusUpdate(String idAuthor, String message) {
+        Node nAuthor = loadUser(idAuthor);
+        StatusUpdate statusUpdate =
+                new StatusUpdate(System.currentTimeMillis(), message);
+        return String.valueOf(addStatusUpdate(nAuthor, statusUpdate));
+    }
+
+    /**
+     * Adds a status update node to the social network.
+     * 
+     * @param nAuthor
+     *            user node of the status update author
+     * @param statusUpdate
+     *            status update data
+     * @return identifier of the status update node
+     */
+    abstract protected long addStatusUpdate(
+            Node nAuthor,
+            StatusUpdate statusUpdate);
 }

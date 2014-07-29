@@ -45,4 +45,17 @@ public interface SocialNetwork {
      *         false - if this followship is not existing
      */
     boolean removeFollowship(String idFollowing, String idFollowed);
+
+    //TODO make generic to enable the usage of more complex post types
+    /**
+     * Adds a status update to the social network in order to appear in user
+     * streams.
+     * 
+     * @param idAuthor
+     *            identifier of the status update author
+     * @param message
+     *            message to be displayed
+     * @return identifier of the status update
+     */
+    String addStatusUpdate(String idAuthor, String message);
 }

@@ -13,5 +13,10 @@ public enum EdgeType implements RelationshipType {
     /**
      * one user follows another one
      */
-    FOLLOWS;
+    FOLLOWS,
+
+    /**
+     * news feed item published
+     */
+    PUBLISHED;
 }

@@ -48,9 +48,20 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     }
 
     @PluginTarget(GraphDatabaseService.class)
-    public boolean post(@Source GraphDatabaseService graphDb, @Parameter(
+    public String post(@Source GraphDatabaseService graphDb, @Parameter(
             name = "author") String idAuthor, @Parameter(
             name = "message") String message) {
-        return false;
+        if (socialGraph == null) {
+            socialGraph = new WriteOptimizedGraphity(graphDb);
+        }
+
+        try (Transaction tx = graphDb.beginTx()) {
+            String idPost = socialGraph.addStatusUpdate(idAuthor, message);
+            if (idPost != null) {
+                tx.success();
+                return idPost;
+            }
+        }
+        return null;
     }
 }
