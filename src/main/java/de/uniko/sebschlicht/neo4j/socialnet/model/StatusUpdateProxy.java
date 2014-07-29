@@ -7,7 +7,7 @@ import de.metalcon.domain.UidType;
 import de.metalcon.exceptions.ServiceOverloadedException;
 
 /**
- * status update displayed in news feeds
+ * node proxy for a status update displayed in news feeds
  * 
  * @author sebschlicht
  * 
@@ -29,17 +29,39 @@ public class StatusUpdateProxy {
      */
     public static final String PROP_MESSAGE = "message";
 
+    /**
+     * status update identifier
+     */
     protected long identifier;
 
+    /**
+     * status update node
+     */
     protected Node nStatusUpdate;
 
+    /**
+     * author (proxy to user node)
+     */
     protected UserProxy pAuthor;
 
+    /**
+     * Create a status update node to provide data access and manipulation.
+     * 
+     * @param nStatusUpdate
+     *            status update node to get and set data
+     */
     public StatusUpdateProxy(
             Node nStatusUpdate) {
         this.nStatusUpdate = nStatusUpdate;
     }
 
+    /**
+     * initialize the status update node<br>
+     * necessary if the proxy is for a new status update
+     * 
+     * @return true - if the status update was successfully created<br>
+     *         false - if status update creation failed due to service overload
+     */
     public boolean init() {
         try {
             identifier = Muid.create(UidType.DISC).getValue();
@@ -53,7 +75,10 @@ public class StatusUpdateProxy {
     public void setAuthor(UserProxy pAuthor) {
         this.pAuthor = pAuthor;
     }
-    
+
+    /**
+     * @return status update identifier
+     */
     public long getIdentifier() {
         return identifier;
     }
