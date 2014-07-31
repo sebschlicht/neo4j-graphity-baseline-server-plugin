@@ -83,4 +83,19 @@ public class WriteOptimizedGraphity extends Graphity {
 
         return pStatusUpdate.getIdentifier();
     }
+
+    //
+    //    public static void main(String[] args) {
+    //        GraphDatabaseBuilder builder =
+    //                new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(
+    //                        new File("/tmp/testdb").getAbsolutePath()).setConfig(
+    //                        GraphDatabaseSettings.cache_type, "none");
+    //        GraphDatabaseService graphDb = builder.newGraphDatabase();
+    //        Graphity graphity = new WriteOptimizedGraphity(graphDb);
+    //        try (Transaction tx = graphDb.beginTx()) {
+    //            System.out.println(graphity.addStatusUpdate("5", "testy"));
+    //            tx.success();
+    //        }
+    //        graphDb.shutdown();
+    //    }
 }

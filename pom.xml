@@ -33,6 +33,7 @@
     <!-- dependency versions: production -->
     <neo4j.version>2.1.2</neo4j.version>
     <metalcon.muid>0.4.2</metalcon.muid>
+    <jersey.version>1.9</jersey.version>
   </properties>
 
   <dependencies>
@@ -50,6 +51,11 @@
       <groupId>de.metalcon</groupId>
       <artifactId>muid</artifactId>
       <version>${metalcon.muid}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-client</artifactId>
+      <version>${jersey.version}</version>
     </dependency>
   </dependencies>
 
@@ -126,6 +132,28 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+
+      <!-- pack JAR with all dependencies -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <finalName>uber-${artifactId}-${version}</finalName>
+          <artifactSet>
+            <includes>
+              <include>de.metalcon:muid</include>
+            </includes>
+          </artifactSet>
+        </configuration>
       </plugin>
     </plugins>
   </build>

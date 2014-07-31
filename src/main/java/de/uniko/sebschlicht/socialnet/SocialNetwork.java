@@ -46,7 +46,7 @@ public interface SocialNetwork {
      */
     boolean removeFollowship(String idFollowing, String idFollowed);
 
-    //TODO make generic to enable the usage of more complex post types
+    //TODO Make content generic to enable the usage of more complex post types.
     /**
      * Adds a status update to the social network in order to appear in user
      * streams.
