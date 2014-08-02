@@ -12,6 +12,13 @@ import de.uniko.sebschlicht.neo4j.socialnet.model.StatusUpdateProxy;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
 
+// TODO documentation
+/**
+ * Graphity implementation optimized for write requests
+ * 
+ * @author Rene Pickhardt, Jonas Kunze, sebschlicht
+ * 
+ */
 public class WriteOptimizedGraphity extends Graphity {
 
     public WriteOptimizedGraphity(
