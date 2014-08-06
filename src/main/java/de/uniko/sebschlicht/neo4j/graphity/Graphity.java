@@ -1,5 +1,6 @@
 package de.uniko.sebschlicht.neo4j.graphity;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -199,4 +200,18 @@ public abstract class Graphity extends SocialGraph<String> {
     abstract protected long addStatusUpdate(
             Node nAuthor,
             StatusUpdate statusUpdate);
+
+    @Override
+    public List<StatusUpdate> readStatusUpdates(
+            String idReader,
+            String idSource,
+            int numStatusUpdates) {
+        //TODO
+        return null;
+    }
+
+    abstract protected List<StatusUpdate> readStatusUpdates(
+            Node nReader,
+            Node nSource,
+            int numStatusUpdates);
 }

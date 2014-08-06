@@ -1,5 +1,7 @@
 package de.uniko.sebschlicht.socialnet;
 
+import java.util.List;
+
 /**
  * operations to access and manipulate a social network using REST API
  * 
@@ -47,15 +49,35 @@ public interface SocialNetwork {
     boolean removeFollowship(String idFollowing, String idFollowed);
 
     //TODO Make content generic to enable the usage of more complex post types.
+    //TODO Introduce wall concept so users can post to other walls than their own
     /**
      * Adds a status update to the social network in order to appear in user
      * streams.
      * 
      * @param idAuthor
-     *            identifier of the status update author
+     *            identifier of the status update author<br>
+     *            at the moment you can only post status updates to your own
+     *            wall
      * @param message
      *            message to be displayed
      * @return identifier of the status update
      */
     String addStatusUpdate(String idAuthor, String message);
+
+    /**
+     * Reads a number of status updates posted to a wall.
+     * 
+     * @param idReader
+     *            identifier of the reader
+     * @param idSource
+     *            identifier of the source wall
+     * @param numStatusUpdates
+     *            number of status updates to get
+     * @return list containing up to <i>numStatusUpdates</i> status updates<br>
+     *         may be empty
+     */
+    List<StatusUpdate> readStatusUpdates(
+            String idReader,
+            String idSource,
+            int numStatusUpdates);
 }

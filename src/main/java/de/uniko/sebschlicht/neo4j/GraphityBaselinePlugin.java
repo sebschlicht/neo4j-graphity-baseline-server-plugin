@@ -13,7 +13,7 @@ import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingIdException
 // TODO documentation
 public class GraphityBaselinePlugin extends ServerPlugin {
 
-    private static Object LCK_STATUS_UPDATE = new Object();
+    private static Object LOCK = new Object();
 
     private static boolean INITIALIZED = false;
 
@@ -35,7 +35,9 @@ public class GraphityBaselinePlugin extends ServerPlugin {
             init(graphDb);
         }
 
-        return SOCIAL_GRAPH.addFollowship(idFollowing, idFollowed);
+        synchronized (LOCK) {
+            return SOCIAL_GRAPH.addFollowship(idFollowing, idFollowed);
+        }
     }
 
     @PluginTarget(GraphDatabaseService.class)
@@ -47,8 +49,10 @@ public class GraphityBaselinePlugin extends ServerPlugin {
         }
 
         try {
-            if (SOCIAL_GRAPH.removeFollowship(idFollowing, idFollowed)) {
-                return true;
+            synchronized (LOCK) {
+                if (SOCIAL_GRAPH.removeFollowship(idFollowing, idFollowed)) {
+                    return true;
+                }
             }
         } catch (UnknownFollowingIdException e) {
             // ignore
@@ -66,7 +70,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
             init(graphDb);
         }
 
-        synchronized (LCK_STATUS_UPDATE) {
+        synchronized (LOCK) {
             return SOCIAL_GRAPH.addStatusUpdate(idAuthor, message);
         }
     }

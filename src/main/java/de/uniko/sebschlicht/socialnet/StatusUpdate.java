@@ -3,6 +3,8 @@ package de.uniko.sebschlicht.socialnet;
 // TODO documentation
 public class StatusUpdate {
 
+    //TODO needs author
+
     protected long published;
 
     protected String message;

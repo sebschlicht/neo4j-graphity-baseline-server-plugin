@@ -1,5 +1,9 @@
 package de.uniko.sebschlicht.neo4j.graphity;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.TreeSet;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -89,6 +93,68 @@ public class WriteOptimizedGraphity extends Graphity {
                 statusUpdate.getPublished());
 
         return pStatusUpdate.getIdentifier();
+    }
+
+    @Override
+    protected List<StatusUpdate> readStatusUpdates(
+            Node nReader,
+            Node nSource,
+            int numStatusUpdates) {
+        final List<StatusUpdate> statusUpdates = new LinkedList<StatusUpdate>();
+
+        //TODO WTF!
+        boolean ownUpdates = nReader.equals(nSource);
+
+        // check if ego network stream is being accessed
+        if (!ownUpdates) {
+            final TreeSet<StatusUpdateProxy> statusUpdateProxies =
+                    new TreeSet<StatusUpdateProxy>(new StatusUpdateComparator());
+
+            // loop through users followed
+            Node userNode;
+            UserProxy crrUser;
+            for (Relationship relationship : nReader.getRelationships(
+                    EdgeType.FOLLOWS, Direction.OUTGOING)) {
+                userNode = relationship.getEndNode();
+
+                // add last recent status updates
+                crrUser = new UserProxy(userNode);
+                if (crrUser.hasStatusUpdate()) {
+                    statusUpdateProxies.add(crrUser.getStatusUpdate());
+                }
+            }
+
+            // handle queue
+            StatusUpdateProxy statusUpdateProxy;
+            while ((statusUpdates.size() < numStatusUpdates)
+                    && !statusUpdateProxies.isEmpty()) {
+                statusUpdateProxy = statusUpdateProxies.pollLast();
+
+                // add last recent status update
+                statusUpdates.add(statusUpdateProxy.getStatusUpdate());
+
+                // add next status update if available
+                statusUpdateProxy = statusUpdateProxy.nextStatusUpdate();
+                if (statusUpdateProxy != null) {
+                    statusUpdateProxies.add(statusUpdateProxy);
+                }
+            }
+        } else {
+            // access single stream only
+            final UserProxy posterNode = new UserProxy(nSource);
+            if (posterNode.hasStatusUpdate()) {
+                StatusUpdateProxy statusUpdateProxy =
+                        posterNode.getStatusUpdate();
+
+                while ((statusUpdates.size() < numStatusUpdates)
+                        && (statusUpdateProxy != null)) {
+                    statusUpdates.add(statusUpdateProxy.getStatusUpdate());
+                    statusUpdateProxy = statusUpdateProxy.nextStatusUpdate();
+                }
+            }
+        }
+
+        return statusUpdates;
     }
 
     //
