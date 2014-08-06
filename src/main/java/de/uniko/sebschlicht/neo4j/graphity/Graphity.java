@@ -8,8 +8,8 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 
-import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedId;
-import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingId;
+import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedIdException;
+import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingIdException;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
 import de.uniko.sebschlicht.neo4j.socialnet.SocialGraph;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
@@ -101,9 +101,23 @@ public abstract class Graphity extends SocialGraph<String> {
 
     @Override
     public boolean addFollowship(String idFollowing, String idFollowed) {
-        Node nFollowing = loadUser(idFollowing);
-        Node nFollowed = loadUser(idFollowed);
-        return addFollowship(nFollowing, nFollowed);
+        try (Transaction tx = graphDb.beginTx()) {
+            Node nFollowing = loadUser(idFollowing);
+            Node nFollowed = loadUser(idFollowed);
+
+            if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
+                tx.acquireWriteLock(nFollowing);
+                tx.acquireWriteLock(nFollowed);
+            } else {
+                tx.acquireWriteLock(nFollowed);
+                tx.acquireWriteLock(nFollowing);
+            }
+            if (addFollowship(nFollowing, nFollowed)) {
+                tx.success();
+                return true;
+            }
+            return false;
+        }
     }
 
     /**
@@ -120,15 +134,29 @@ public abstract class Graphity extends SocialGraph<String> {
 
     @Override
     public boolean removeFollowship(String idFollowing, String idFollowed) {
-        Node nFollowing = findUser(idFollowing);
-        if (nFollowing == null) {
-            throw new UnknownFollowingId(idFollowing.toString());
+        try (Transaction tx = graphDb.beginTx()) {
+            Node nFollowing = findUser(idFollowing);
+            if (nFollowing == null) {
+                throw new UnknownFollowingIdException(idFollowing.toString());
+            }
+            Node nFollowed = findUser(idFollowed);
+            if (nFollowed == null) {
+                throw new UnknownFollowedIdException(idFollowed.toString());
+            }
+
+            if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
+                tx.acquireWriteLock(nFollowing);
+                tx.acquireWriteLock(nFollowed);
+            } else {
+                tx.acquireWriteLock(nFollowed);
+                tx.acquireWriteLock(nFollowing);
+            }
+            if (removeFollowship(nFollowing, nFollowed)) {
+                tx.success();
+                return true;
+            }
+            return false;
         }
-        Node nFollowed = findUser(idFollowed);
-        if (nFollowed == null) {
-            throw new UnknownFollowedId(idFollowed.toString());
-        }
-        return removeFollowship(nFollowing, nFollowed);
     }
 
     /**
@@ -147,10 +175,16 @@ public abstract class Graphity extends SocialGraph<String> {
 
     @Override
     public String addStatusUpdate(String idAuthor, String message) {
-        Node nAuthor = loadUser(idAuthor);
-        StatusUpdate statusUpdate =
-                new StatusUpdate(System.currentTimeMillis(), message);
-        return String.valueOf(addStatusUpdate(nAuthor, statusUpdate));
+        try (Transaction tx = graphDb.beginTx()) {
+            Node nAuthor = loadUser(idAuthor);
+            StatusUpdate statusUpdate =
+                    new StatusUpdate(System.currentTimeMillis(), message);
+            long statusUpdateId = addStatusUpdate(nAuthor, statusUpdate);
+            if (statusUpdateId != 0) {
+                tx.success();
+            }
+            return String.valueOf(statusUpdateId);
+        }
     }
 
     /**

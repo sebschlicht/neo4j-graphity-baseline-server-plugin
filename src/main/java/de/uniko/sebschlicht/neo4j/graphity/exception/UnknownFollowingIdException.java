@@ -6,7 +6,7 @@ package de.uniko.sebschlicht.neo4j.graphity.exception;
  * @author sebschlicht
  * 
  */
-public class UnknownFollowingId extends IllegalArgumentException {
+public class UnknownFollowingIdException extends IllegalArgumentException {
 
     private static final long serialVersionUID = -1228234431314197210L;
 
@@ -22,7 +22,7 @@ public class UnknownFollowingId extends IllegalArgumentException {
      * @param idFollowing
      *            following user identifier passed
      */
-    public UnknownFollowingId(
+    public UnknownFollowingIdException(
             String idFollowing) {
         this.idFollowing = idFollowing;
     }

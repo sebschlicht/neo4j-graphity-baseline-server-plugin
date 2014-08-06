@@ -150,7 +150,7 @@
           <finalName>uber-${artifactId}-${version}</finalName>
           <artifactSet>
             <includes>
-              <include>de.metalcon:muid</include>
+              <include>de.metalcon:*</include>
             </includes>
           </artifactSet>
         </configuration>

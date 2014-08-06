@@ -1,48 +1,59 @@
 package de.uniko.sebschlicht.neo4j;
 
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
 import de.uniko.sebschlicht.neo4j.graphity.WriteOptimizedGraphity;
+import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedIdException;
+import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingIdException;
 
 // TODO documentation
 public class GraphityBaselinePlugin extends ServerPlugin {
 
-    private static WriteOptimizedGraphity socialGraph;
+    private static Object LCK_STATUS_UPDATE = new Object();
 
-    @PluginTarget(GraphDatabaseService.class)
-    public boolean addUser(@Source GraphDatabaseService graphDb, @Parameter(
-            name = "identifier") String identifier) {
-        if (socialGraph == null) {
-            socialGraph = new WriteOptimizedGraphity(graphDb);
-        }
+    private static boolean INITIALIZED = false;
 
-        try (Transaction tx = graphDb.beginTx()) {
-            if (socialGraph.addUser(identifier)) {
-                tx.success();
-                return true;
-            }
+    private static WriteOptimizedGraphity SOCIAL_GRAPH;
+
+    private static synchronized void init(GraphDatabaseService graphDb) {
+        if (!INITIALIZED) {
+            INITIALIZED = true;
+            SOCIAL_GRAPH = new WriteOptimizedGraphity(graphDb);
+            SOCIAL_GRAPH.init();
         }
-        return false;
     }
 
     @PluginTarget(GraphDatabaseService.class)
     public boolean follow(@Source GraphDatabaseService graphDb, @Parameter(
             name = "following") String idFollowing, @Parameter(
             name = "followed") String idFollowed) {
-        if (socialGraph == null) {
-            socialGraph = new WriteOptimizedGraphity(graphDb);
+        if (SOCIAL_GRAPH == null) {
+            init(graphDb);
         }
 
-        try (Transaction tx = graphDb.beginTx()) {
-            if (socialGraph.addFollowship(idFollowing, idFollowed)) {
-                tx.success();
+        return SOCIAL_GRAPH.addFollowship(idFollowing, idFollowed);
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
+    public boolean unfollow(@Source GraphDatabaseService graphDb, @Parameter(
+            name = "following") String idFollowing, @Parameter(
+            name = "followed") String idFollowed) {
+        if (SOCIAL_GRAPH == null) {
+            init(graphDb);
+        }
+
+        try {
+            if (SOCIAL_GRAPH.removeFollowship(idFollowing, idFollowed)) {
                 return true;
             }
+        } catch (UnknownFollowingIdException e) {
+            // ignore
+        } catch (UnknownFollowedIdException e) {
+            // ignore
         }
         return false;
     }
@@ -51,17 +62,12 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     public String post(@Source GraphDatabaseService graphDb, @Parameter(
             name = "author") String idAuthor, @Parameter(
             name = "message") String message) {
-        if (socialGraph == null) {
-            socialGraph = new WriteOptimizedGraphity(graphDb);
+        if (SOCIAL_GRAPH == null) {
+            init(graphDb);
         }
 
-        try (Transaction tx = graphDb.beginTx()) {
-            String idPost = socialGraph.addStatusUpdate(idAuthor, message);
-            if (idPost != null) {
-                tx.success();
-                return idPost;
-            }
+        synchronized (LCK_STATUS_UPDATE) {
+            return SOCIAL_GRAPH.addStatusUpdate(idAuthor, message);
         }
-        return null;
     }
 }
