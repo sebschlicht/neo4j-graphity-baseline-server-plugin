@@ -178,6 +178,7 @@ public abstract class Graphity extends SocialGraph<String> {
     public String addStatusUpdate(String idAuthor, String message) {
         try (Transaction tx = graphDb.beginTx()) {
             Node nAuthor = loadUser(idAuthor);
+            tx.acquireWriteLock(nAuthor);
             StatusUpdate statusUpdate =
                     new StatusUpdate(System.currentTimeMillis(), message);
             long statusUpdateId = addStatusUpdate(nAuthor, statusUpdate);
@@ -204,14 +205,15 @@ public abstract class Graphity extends SocialGraph<String> {
     @Override
     public List<StatusUpdate> readStatusUpdates(
             String idReader,
-            String idSource,
             int numStatusUpdates) {
-        //TODO
-        return null;
+        try (Transaction tx = graphDb.beginTx()) {
+            // may be null but readStatusUpdates can handle that
+            Node nReader = findUser(idReader);
+            return readStatusUpdates(nReader, numStatusUpdates);
+        }
     }
 
     abstract protected List<StatusUpdate> readStatusUpdates(
             Node nReader,
-            Node nSource,
             int numStatusUpdates);
 }

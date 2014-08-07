@@ -5,8 +5,6 @@ import org.neo4j.graphdb.Node;
 import de.metalcon.domain.Muid;
 import de.metalcon.domain.UidType;
 import de.metalcon.exceptions.ServiceOverloadedException;
-import de.uniko.sebschlicht.neo4j.Walker;
-import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
 
 /**
@@ -15,7 +13,7 @@ import de.uniko.sebschlicht.socialnet.StatusUpdate;
  * @author sebschlicht
  * 
  */
-public class StatusUpdateProxy {
+public class StatusUpdateProxy extends SocialNodeProxy {
 
     /**
      * permanent universally unique identifier
@@ -43,19 +41,9 @@ public class StatusUpdateProxy {
     protected long published;
 
     /**
-     * status update node
-     */
-    protected Node nStatusUpdate;
-
-    /**
      * author (proxy to user node)
      */
     protected UserProxy pAuthor;
-
-    /**
-     * next status update node of same publisher
-     */
-    protected StatusUpdateProxy nextStatusUpdate;
 
     /**
      * Create a status update node to provide data access and manipulation.
@@ -65,7 +53,7 @@ public class StatusUpdateProxy {
      */
     public StatusUpdateProxy(
             Node nStatusUpdate) {
-        this.nStatusUpdate = nStatusUpdate;
+        super(nStatusUpdate);
     }
 
     /**
@@ -77,8 +65,7 @@ public class StatusUpdateProxy {
      */
     public boolean init() {
         try {
-            identifier = Muid.create(UidType.DISC).getValue();
-            nStatusUpdate.setProperty(PROP_IDENTIFIER, identifier);
+            setIdentifier(Muid.create(UidType.DISC).getValue());
             return true;
         } catch (ServiceOverloadedException e) {
             return false;
@@ -96,38 +83,36 @@ public class StatusUpdateProxy {
         return identifier;
     }
 
+    private void setIdentifier(long identifier) {
+        this.identifier = identifier;
+        node.setProperty(PROP_IDENTIFIER, identifier);
+    }
+
     public String getMessage() {
-        return (String) nStatusUpdate.getProperty(PROP_MESSAGE);
+        return (String) node.getProperty(PROP_MESSAGE);
     }
 
     public void setMessage(String message) {
-        nStatusUpdate.setProperty(PROP_MESSAGE, message);
+        node.setProperty(PROP_MESSAGE, message);
     }
 
+    /**
+     * 
+     * @return cached timestamp of publishing
+     */
     public long getPublished() {
         if (published == 0) {
-            published = (long) nStatusUpdate.getProperty(PROP_PUBLISHED);
+            published = (long) node.getProperty(PROP_PUBLISHED);
         }
         return published;
     }
 
     public void setPublished(long published) {
-        nStatusUpdate.setProperty(PROP_PUBLISHED, published);
+        this.published = published;
+        node.setProperty(PROP_PUBLISHED, published);
     }
 
     public StatusUpdate getStatusUpdate() {
         return new StatusUpdate(getPublished(), getMessage());
-    }
-
-    public StatusUpdateProxy nextStatusUpdate() {
-        Node nNextStatusUpdate =
-                Walker.nextNode(nextStatusUpdate.nStatusUpdate,
-                        EdgeType.FOLLOWS);
-        if (nNextStatusUpdate != null) {
-            nextStatusUpdate = new StatusUpdateProxy(nNextStatusUpdate);
-        } else {
-            nextStatusUpdate = null;
-        }
-        return nextStatusUpdate;
     }
 }

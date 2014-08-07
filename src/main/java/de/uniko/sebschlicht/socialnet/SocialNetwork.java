@@ -65,19 +65,13 @@ public interface SocialNetwork {
     String addStatusUpdate(String idAuthor, String message);
 
     /**
-     * Reads a number of status updates posted to a wall.
+     * Reads a number of status updates posted in a user's social network.
      * 
      * @param idReader
      *            identifier of the reader
-     * @param idSource
-     *            identifier of the source wall
      * @param numStatusUpdates
      *            number of status updates to get
      * @return list containing up to <i>numStatusUpdates</i> status updates<br>
-     *         may be empty
      */
-    List<StatusUpdate> readStatusUpdates(
-            String idReader,
-            String idSource,
-            int numStatusUpdates);
+    List<StatusUpdate> readStatusUpdates(String idReader, int numStatusUpdates);
 }

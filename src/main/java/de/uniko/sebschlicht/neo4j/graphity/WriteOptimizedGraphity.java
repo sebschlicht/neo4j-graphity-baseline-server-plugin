@@ -1,5 +1,6 @@
 package de.uniko.sebschlicht.neo4j.graphity;
 
+import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
@@ -8,11 +9,16 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 
 import de.uniko.sebschlicht.neo4j.Walker;
 import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
+import de.uniko.sebschlicht.neo4j.socialnet.model.PostIteratorComparator;
 import de.uniko.sebschlicht.neo4j.socialnet.model.StatusUpdateProxy;
+import de.uniko.sebschlicht.neo4j.socialnet.model.UserPostIterator;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
 
@@ -98,77 +104,89 @@ public class WriteOptimizedGraphity extends Graphity {
     @Override
     protected List<StatusUpdate> readStatusUpdates(
             Node nReader,
-            Node nSource,
             int numStatusUpdates) {
         final List<StatusUpdate> statusUpdates = new LinkedList<StatusUpdate>();
+        if (nReader == null) {
+            return statusUpdates;
+        }
+        final TreeSet<UserPostIterator> postIterators =
+                new TreeSet<UserPostIterator>(new PostIteratorComparator());
 
-        //TODO WTF!
-        boolean ownUpdates = nReader.equals(nSource);
+        // loop through users followed
+        UserProxy pCrrUser;
+        UserPostIterator postIterator;
+        for (Relationship relationship : nReader.getRelationships(
+                EdgeType.FOLLOWS, Direction.OUTGOING)) {
+            // add post iterator
+            pCrrUser = new UserProxy(relationship.getEndNode());
+            postIterator = new UserPostIterator(pCrrUser);
 
-        // check if ego network stream is being accessed
-        if (!ownUpdates) {
-            final TreeSet<StatusUpdateProxy> statusUpdateProxies =
-                    new TreeSet<StatusUpdateProxy>(new StatusUpdateComparator());
-
-            // loop through users followed
-            Node userNode;
-            UserProxy crrUser;
-            for (Relationship relationship : nReader.getRelationships(
-                    EdgeType.FOLLOWS, Direction.OUTGOING)) {
-                userNode = relationship.getEndNode();
-
-                // add last recent status updates
-                crrUser = new UserProxy(userNode);
-                if (crrUser.hasStatusUpdate()) {
-                    statusUpdateProxies.add(crrUser.getStatusUpdate());
-                }
-            }
-
-            // handle queue
-            StatusUpdateProxy statusUpdateProxy;
-            while ((statusUpdates.size() < numStatusUpdates)
-                    && !statusUpdateProxies.isEmpty()) {
-                statusUpdateProxy = statusUpdateProxies.pollLast();
-
-                // add last recent status update
-                statusUpdates.add(statusUpdateProxy.getStatusUpdate());
-
-                // add next status update if available
-                statusUpdateProxy = statusUpdateProxy.nextStatusUpdate();
-                if (statusUpdateProxy != null) {
-                    statusUpdateProxies.add(statusUpdateProxy);
-                }
-            }
-        } else {
-            // access single stream only
-            final UserProxy posterNode = new UserProxy(nSource);
-            if (posterNode.hasStatusUpdate()) {
-                StatusUpdateProxy statusUpdateProxy =
-                        posterNode.getStatusUpdate();
-
-                while ((statusUpdates.size() < numStatusUpdates)
-                        && (statusUpdateProxy != null)) {
-                    statusUpdates.add(statusUpdateProxy.getStatusUpdate());
-                    statusUpdateProxy = statusUpdateProxy.nextStatusUpdate();
-                }
+            if (postIterator.hasNext()) {
+                postIterators.add(postIterator);
             }
         }
+
+        // handle queue
+        while ((statusUpdates.size() < numStatusUpdates)
+                && !postIterators.isEmpty()) {
+            // add last recent status update
+            postIterator = postIterators.pollLast();
+            statusUpdates.add(postIterator.next().getStatusUpdate());
+
+            // re-add iterator if not empty
+            if (postIterator.hasNext()) {
+                postIterators.add(postIterator);
+            }
+        }
+
+        //            // access single stream only
+        //            final UserProxy posterNode = new UserProxy(nSource);
+        //            UserPostIterator postIterator = new UserPostIterator(posterNode);
+        //
+        //            while ((statusUpdates.size() < numStatusUpdates)
+        //                    && postIterator.hasNext()) {
+        //                statusUpdates.add(postIterator.next().getStatusUpdate());
+        //            }
 
         return statusUpdates;
     }
 
-    //
-    //    public static void main(String[] args) {
-    //        GraphDatabaseBuilder builder =
-    //                new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(
-    //                        new File("/tmp/testdb").getAbsolutePath()).setConfig(
-    //                        GraphDatabaseSettings.cache_type, "none");
-    //        GraphDatabaseService graphDb = builder.newGraphDatabase();
-    //        Graphity graphity = new WriteOptimizedGraphity(graphDb);
-    //        try (Transaction tx = graphDb.beginTx()) {
-    //            System.out.println(graphity.addStatusUpdate("5", "testy"));
-    //            tx.success();
-    //        }
-    //        graphDb.shutdown();
-    //    }
+    public static void main(String[] args) {
+        GraphDatabaseBuilder builder =
+                new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(
+                        new File("/tmp/testdb").getAbsolutePath()).setConfig(
+                        GraphDatabaseSettings.cache_type, "none");
+        GraphDatabaseService graphDb = builder.newGraphDatabase();
+        Graphity graphity = new WriteOptimizedGraphity(graphDb);
+        System.out.println(graphity.addFollowship("1", "2"));
+        System.out.println(graphity.addFollowship("1", "3"));
+        System.out.println(graphity.addFollowship("1", "4"));
+
+        System.out.println(graphity.addFollowship("2", "1"));
+        System.out.println(graphity.addFollowship("2", "4"));
+
+        System.out.println(graphity.addStatusUpdate("4", "mine"));
+        System.out.println(graphity.addStatusUpdate("4", "of"));
+        System.out.println(graphity.addStatusUpdate("3", "friend"));
+        System.out.println(graphity.addStatusUpdate("2", "dear"));
+        System.out.println(graphity.addStatusUpdate("2", "my"));
+        System.out.println(graphity.addStatusUpdate("3", "hello"));
+
+        System.out.println("-------");
+        for (StatusUpdate su : graphity.readStatusUpdates("1", 10)) {
+            System.out.println(su.getMessage());
+        }
+        System.out.println("-------");
+        for (StatusUpdate su : graphity.readStatusUpdates("2", 2)) {
+            System.out.println(su.getMessage());
+        }
+        System.out.println("-------");
+        for (StatusUpdate su : graphity.readStatusUpdates("2", 1)) {
+            System.out.println(su.getMessage());
+        }
+        if (graphity.readStatusUpdates("3", 10).size() == 0) {
+            System.out.println("...");
+        }
+        graphDb.shutdown();
+    }
 }
