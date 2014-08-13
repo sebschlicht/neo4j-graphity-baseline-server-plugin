@@ -21,14 +21,11 @@ public class UserProxy extends SocialNodeProxy {
     public static final String PROP_LAST_STREAM_UDPATE = "stream_update";
 
     /**
-     * user node
-     */
-    protected Node nUser;
-
-    /**
      * last recent status update posted by this user
      */
     protected StatusUpdateProxy lastPost;
+
+    protected String identifier;
 
     /**
      * Create a user node proxy to provide data access and manipulation.
@@ -39,5 +36,12 @@ public class UserProxy extends SocialNodeProxy {
     public UserProxy(
             Node nUser) {
         super(nUser);
+    }
+
+    public String getIdentifier() {
+        if (identifier == null) {
+            identifier = (String) node.getProperty(PROP_IDENTIFIER);
+        }
+        return identifier;
     }
 }

@@ -113,6 +113,7 @@ public class StatusUpdateProxy extends SocialNodeProxy {
     }
 
     public StatusUpdate getStatusUpdate() {
-        return new StatusUpdate(getPublished(), getMessage());
+        return new StatusUpdate(pAuthor.getIdentifier(), getPublished(),
+                getMessage());
     }
 }

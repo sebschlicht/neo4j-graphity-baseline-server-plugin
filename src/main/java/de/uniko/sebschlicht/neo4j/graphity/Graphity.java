@@ -1,6 +1,5 @@
 package de.uniko.sebschlicht.neo4j.graphity;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -15,6 +14,7 @@ import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
 import de.uniko.sebschlicht.neo4j.socialnet.SocialGraph;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
+import de.uniko.sebschlicht.socialnet.StatusUpdateList;
 
 /**
  * social graph for Graphity implementations
@@ -180,7 +180,8 @@ public abstract class Graphity extends SocialGraph<String> {
             Node nAuthor = loadUser(idAuthor);
             tx.acquireWriteLock(nAuthor);
             StatusUpdate statusUpdate =
-                    new StatusUpdate(System.currentTimeMillis(), message);
+                    new StatusUpdate(idAuthor, System.currentTimeMillis(),
+                            message);
             long statusUpdateId = addStatusUpdate(nAuthor, statusUpdate);
             if (statusUpdateId != 0) {
                 tx.success();
@@ -203,7 +204,7 @@ public abstract class Graphity extends SocialGraph<String> {
             StatusUpdate statusUpdate);
 
     @Override
-    public List<StatusUpdate> readStatusUpdates(
+    public StatusUpdateList readStatusUpdates(
             String idReader,
             int numStatusUpdates) {
         try (Transaction tx = graphDb.beginTx()) {
@@ -213,7 +214,7 @@ public abstract class Graphity extends SocialGraph<String> {
         }
     }
 
-    abstract protected List<StatusUpdate> readStatusUpdates(
+    abstract protected StatusUpdateList readStatusUpdates(
             Node nReader,
             int numStatusUpdates);
 }

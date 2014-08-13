@@ -20,7 +20,9 @@ public class UserPostIterator implements PostIterator {
     protected static StatusUpdateProxy getLastUserPost(UserProxy pUser) {
         Node nLastPost = Walker.nextNode(pUser.getNode(), EdgeType.PUBLISHED);
         if (nLastPost != null) {
-            return new StatusUpdateProxy(nLastPost);
+            StatusUpdateProxy pStatusUpdate = new StatusUpdateProxy(nLastPost);
+            pStatusUpdate.setAuthor(pUser);
+            return pStatusUpdate;
         } else {
             return null;
         }

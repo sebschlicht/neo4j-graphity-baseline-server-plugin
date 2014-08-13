@@ -1,6 +1,5 @@
 package de.uniko.sebschlicht.socialnet;
 
-import java.util.List;
 
 /**
  * operations to access and manipulate a social network using REST API
@@ -73,5 +72,5 @@ public interface SocialNetwork {
      *            number of status updates to get
      * @return list containing up to <i>numStatusUpdates</i> status updates<br>
      */
-    List<StatusUpdate> readStatusUpdates(String idReader, int numStatusUpdates);
+    StatusUpdateList readStatusUpdates(String idReader, int numStatusUpdates);
 }

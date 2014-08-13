@@ -1,8 +1,6 @@
 package de.uniko.sebschlicht.neo4j.graphity;
 
 import java.io.File;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.TreeSet;
 
 import org.neo4j.graphdb.Direction;
@@ -21,6 +19,7 @@ import de.uniko.sebschlicht.neo4j.socialnet.model.StatusUpdateProxy;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserPostIterator;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
+import de.uniko.sebschlicht.socialnet.StatusUpdateList;
 
 // TODO documentation
 /**
@@ -102,10 +101,10 @@ public class WriteOptimizedGraphity extends Graphity {
     }
 
     @Override
-    protected List<StatusUpdate> readStatusUpdates(
+    protected StatusUpdateList readStatusUpdates(
             Node nReader,
             int numStatusUpdates) {
-        final List<StatusUpdate> statusUpdates = new LinkedList<StatusUpdate>();
+        StatusUpdateList statusUpdates = new StatusUpdateList();
         if (nReader == null) {
             return statusUpdates;
         }
@@ -173,17 +172,11 @@ public class WriteOptimizedGraphity extends Graphity {
         System.out.println(graphity.addStatusUpdate("3", "hello"));
 
         System.out.println("-------");
-        for (StatusUpdate su : graphity.readStatusUpdates("1", 10)) {
-            System.out.println(su.getMessage());
-        }
+        System.out.println(graphity.readStatusUpdates("1", 15));
         System.out.println("-------");
-        for (StatusUpdate su : graphity.readStatusUpdates("2", 2)) {
-            System.out.println(su.getMessage());
-        }
+        System.out.println(graphity.readStatusUpdates("2", 2));
         System.out.println("-------");
-        for (StatusUpdate su : graphity.readStatusUpdates("2", 1)) {
-            System.out.println(su.getMessage());
-        }
+        System.out.println(graphity.readStatusUpdates("2", 1));
         if (graphity.readStatusUpdates("3", 10).size() == 0) {
             System.out.println("...");
         }

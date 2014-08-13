@@ -65,12 +65,13 @@ public class GraphityBaselinePlugin extends ServerPlugin {
         return SOCIAL_GRAPH.addStatusUpdate(idAuthor, message);
     }
 
-    public int feeds(@Source GraphDatabaseService graphDb, @Parameter(
+    @PluginTarget(GraphDatabaseService.class)
+    public String feeds(@Source GraphDatabaseService graphDb, @Parameter(
             name = "reader") String idReader) {
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }
 
-        return SOCIAL_GRAPH.readStatusUpdates(idReader, 15).size();
+        return SOCIAL_GRAPH.readStatusUpdates(idReader, 15).toString();
     }
 }

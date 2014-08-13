@@ -33,7 +33,7 @@
     <!-- dependency versions: production -->
     <neo4j.version>2.1.2</neo4j.version>
     <metalcon.muid>0.4.2</metalcon.muid>
-    <jersey.version>1.9</jersey.version>
+    <json.version>1.1</json.version>
   </properties>
 
   <dependencies>
@@ -53,9 +53,9 @@
       <version>${metalcon.muid}</version>
     </dependency>
     <dependency>
-      <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-client</artifactId>
-      <version>${jersey.version}</version>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>${json.version}</version>
     </dependency>
   </dependencies>
 
@@ -151,6 +151,7 @@
           <artifactSet>
             <includes>
               <include>de.metalcon:*</include>
+              <include>com.googlecode.json-simple:json-simple</include>
             </includes>
           </artifactSet>
         </configuration>
