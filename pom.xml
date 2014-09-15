@@ -33,6 +33,7 @@
     <!-- dependency versions: production -->
     <neo4j.version>2.1.2</neo4j.version>
     <metalcon.muid>0.4.2</metalcon.muid>
+    <socialnet.version>0.0.1-SNAPSHOT</socialnet.version>
     <json.version>1.1</json.version>
   </properties>
 
@@ -51,6 +52,11 @@
       <groupId>de.metalcon</groupId>
       <artifactId>muid</artifactId>
       <version>${metalcon.muid}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.uniko.sebschlicht</groupId>
+      <artifactId>socialnet</artifactId>
+      <version>${socialnet.version}</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>

@@ -6,9 +6,11 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
+import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownFollowedIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownFollowingIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
 import de.uniko.sebschlicht.neo4j.graphity.WriteOptimizedGraphity;
-import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedIdException;
-import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingIdException;
 
 // TODO documentation
 public class GraphityBaselinePlugin extends ServerPlugin {
@@ -28,7 +30,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public boolean follow(@Source GraphDatabaseService graphDb, @Parameter(
             name = "following") String idFollowing, @Parameter(
-            name = "followed") String idFollowed) {
+            name = "followed") String idFollowed) throws IllegalUserIdException {
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }
@@ -39,25 +41,19 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public boolean unfollow(@Source GraphDatabaseService graphDb, @Parameter(
             name = "following") String idFollowing, @Parameter(
-            name = "followed") String idFollowed) {
+            name = "followed") String idFollowed)
+            throws UnknownFollowingIdException, UnknownFollowedIdException {
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }
 
-        try {
-            return SOCIAL_GRAPH.removeFollowship(idFollowing, idFollowed);
-        } catch (UnknownFollowingIdException e) {
-            // ignore
-        } catch (UnknownFollowedIdException e) {
-            // ignore
-        }
-        return false;
+        return SOCIAL_GRAPH.removeFollowship(idFollowing, idFollowed);
     }
 
     @PluginTarget(GraphDatabaseService.class)
-    public String post(@Source GraphDatabaseService graphDb, @Parameter(
+    public long post(@Source GraphDatabaseService graphDb, @Parameter(
             name = "author") String idAuthor, @Parameter(
-            name = "message") String message) {
+            name = "message") String message) throws IllegalUserIdException {
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }
@@ -67,7 +63,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
 
     @PluginTarget(GraphDatabaseService.class)
     public String feeds(@Source GraphDatabaseService graphDb, @Parameter(
-            name = "reader") String idReader) {
+            name = "reader") String idReader) throws UnknownReaderIdException {
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }

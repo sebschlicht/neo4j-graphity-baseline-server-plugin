@@ -3,15 +3,18 @@ package de.uniko.sebschlicht.neo4j.graphity;
 import java.util.concurrent.TimeUnit;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 
-import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowedIdException;
-import de.uniko.sebschlicht.neo4j.graphity.exception.UnknownFollowingIdException;
+import de.uniko.sebschlicht.graphity.Graphity;
+import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownFollowedIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownFollowingIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
-import de.uniko.sebschlicht.neo4j.socialnet.SocialGraph;
 import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
 import de.uniko.sebschlicht.socialnet.StatusUpdateList;
@@ -22,18 +25,23 @@ import de.uniko.sebschlicht.socialnet.StatusUpdateList;
  * @author sebschlicht
  * 
  */
-public abstract class Graphity extends SocialGraph<String> {
+public abstract class Neo4jGraphity extends Graphity {
 
     /**
-     * Creates a new Graphity instance using the database provided.
+     * graph database holding the social network graph
+     */
+    protected GraphDatabaseService graphDb;
+
+    /**
+     * Creates a new Graphity instance using the Neo4j database provided.
      * 
      * @param graphDb
      *            graph database holding any Graphity social network graph to
      *            operate on
      */
-    public Graphity(
+    public Neo4jGraphity(
             GraphDatabaseService graphDb) {
-        super(graphDb);
+        this.graphDb = graphDb;
     }
 
     @Override
@@ -52,6 +60,58 @@ public abstract class Graphity extends SocialGraph<String> {
         try (Transaction tx = graphDb.beginTx()) {
             graphDb.schema().awaitIndexesOnline(10, TimeUnit.SECONDS);
         }
+    }
+
+    /**
+     * Loads the index definition for a label on a certain property key.
+     * 
+     * @param label
+     *            label the index was created for
+     * @param propertyKey
+     *            property key the index was created on
+     * @return index definition - for the label on the property specified<br>
+     *         <b>null</b> - if there is no index for the label on this property
+     */
+    protected IndexDefinition loadIndexDefinition(
+            Label label,
+            String propertyKey) {
+        try (Transaction tx = graphDb.beginTx()) {
+            for (IndexDefinition indexDefinition : graphDb.schema().getIndexes(
+                    label)) {
+                for (String indexPropertyKey : indexDefinition
+                        .getPropertyKeys()) {
+                    if (indexPropertyKey.equals(propertyKey)) {
+                        return indexDefinition;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Creates a user that can act in the social network.
+     * 
+     * @param userIdentifier
+     *            identifier of the new user
+     * @return user node - if the user was successfully created<br>
+     *         <b>null</b> - if the identifier is already in use
+     * @throws IllegalUserIdException
+     *             if the user identifier is invalid
+     */
+    public Node createUser(String userIdentifier) throws IllegalUserIdException {
+        try {
+            long idUser = Long.valueOf(userIdentifier);
+            if (idUser > 0) {
+                Node nUser = graphDb.createNode(NodeType.USER);
+                nUser.setProperty(UserProxy.PROP_IDENTIFIER, userIdentifier);
+                return nUser;
+            }
+        } catch (NumberFormatException e) {
+            // exception thrown below
+        }
+        //TODO log exception reason (NaN/<=0)
+        throw new IllegalUserIdException(userIdentifier);
     }
 
     /**
@@ -79,8 +139,11 @@ public abstract class Graphity extends SocialGraph<String> {
      * @param userIdentifier
      *            identifier of the user to interact with
      * @return user node - existing or created node representing the user
+     * @throws IllegalUserIdException
+     *             if the user must be created and the identifier is invalid
      */
-    protected Node loadUser(String userIdentifier) {
+    protected Node loadUser(String userIdentifier)
+            throws IllegalUserIdException {
         Node nUser = findUser(userIdentifier);
         if (nUser != null) {
             // user is already existing
@@ -90,7 +153,7 @@ public abstract class Graphity extends SocialGraph<String> {
     }
 
     @Override
-    public boolean addUser(String userIdentifier) {
+    public boolean addUser(String userIdentifier) throws IllegalUserIdException {
         Node nUser = findUser(userIdentifier);
         if (nUser == null) {
             // user identifier not in use yet
@@ -101,7 +164,8 @@ public abstract class Graphity extends SocialGraph<String> {
     }
 
     @Override
-    public boolean addFollowship(String idFollowing, String idFollowed) {
+    public boolean addFollowship(String idFollowing, String idFollowed)
+            throws IllegalUserIdException {
         try (Transaction tx = graphDb.beginTx()) {
             Node nFollowing = loadUser(idFollowing);
             Node nFollowed = loadUser(idFollowed);
@@ -134,15 +198,16 @@ public abstract class Graphity extends SocialGraph<String> {
     abstract protected boolean addFollowship(Node nFollowing, Node nFollowed);
 
     @Override
-    public boolean removeFollowship(String idFollowing, String idFollowed) {
+    public boolean removeFollowship(String idFollowing, String idFollowed)
+            throws UnknownFollowingIdException, UnknownFollowedIdException {
         try (Transaction tx = graphDb.beginTx()) {
             Node nFollowing = findUser(idFollowing);
             if (nFollowing == null) {
-                throw new UnknownFollowingIdException(idFollowing.toString());
+                throw new UnknownFollowingIdException(idFollowing);
             }
             Node nFollowed = findUser(idFollowed);
             if (nFollowed == null) {
-                throw new UnknownFollowedIdException(idFollowed.toString());
+                throw new UnknownFollowedIdException(idFollowed);
             }
 
             if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
@@ -175,7 +240,8 @@ public abstract class Graphity extends SocialGraph<String> {
         removeFollowship(Node nFollowing, Node nFollowed);
 
     @Override
-    public String addStatusUpdate(String idAuthor, String message) {
+    public long addStatusUpdate(String idAuthor, String message)
+            throws IllegalUserIdException {
         try (Transaction tx = graphDb.beginTx()) {
             Node nAuthor = loadUser(idAuthor);
             tx.acquireWriteLock(nAuthor);
@@ -186,7 +252,7 @@ public abstract class Graphity extends SocialGraph<String> {
             if (statusUpdateId != 0) {
                 tx.success();
             }
-            return String.valueOf(statusUpdateId);
+            return statusUpdateId;
         }
     }
 
@@ -206,11 +272,13 @@ public abstract class Graphity extends SocialGraph<String> {
     @Override
     public StatusUpdateList readStatusUpdates(
             String idReader,
-            int numStatusUpdates) {
+            int numStatusUpdates) throws UnknownReaderIdException {
         try (Transaction tx = graphDb.beginTx()) {
-            // may be null but readStatusUpdates can handle that
             Node nReader = findUser(idReader);
-            return readStatusUpdates(nReader, numStatusUpdates);
+            if (nReader != null) {
+                return readStatusUpdates(nReader, numStatusUpdates);
+            }
+            throw new UnknownReaderIdException(idReader);
         }
     }
 

@@ -11,6 +11,8 @@ import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 
+import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
 import de.uniko.sebschlicht.neo4j.Walker;
 import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
@@ -28,7 +30,7 @@ import de.uniko.sebschlicht.socialnet.StatusUpdateList;
  * @author Rene Pickhardt, Jonas Kunze, sebschlicht
  * 
  */
-public class WriteOptimizedGraphity extends Graphity {
+public class WriteOptimizedGraphity extends Neo4jGraphity {
 
     public WriteOptimizedGraphity(
             GraphDatabaseService graphDb) {
@@ -156,29 +158,33 @@ public class WriteOptimizedGraphity extends Graphity {
                         new File("/tmp/testdb").getAbsolutePath()).setConfig(
                         GraphDatabaseSettings.cache_type, "none");
         GraphDatabaseService graphDb = builder.newGraphDatabase();
-        Graphity graphity = new WriteOptimizedGraphity(graphDb);
-        System.out.println(graphity.addFollowship("1", "2"));
-        System.out.println(graphity.addFollowship("1", "3"));
-        System.out.println(graphity.addFollowship("1", "4"));
+        Neo4jGraphity graphity = new WriteOptimizedGraphity(graphDb);
+        try {
+            System.out.println(graphity.addFollowship("1", "2"));
+            System.out.println(graphity.addFollowship("1", "3"));
+            System.out.println(graphity.addFollowship("1", "4"));
 
-        System.out.println(graphity.addFollowship("2", "1"));
-        System.out.println(graphity.addFollowship("2", "4"));
+            System.out.println(graphity.addFollowship("2", "1"));
+            System.out.println(graphity.addFollowship("2", "4"));
 
-        System.out.println(graphity.addStatusUpdate("4", "mine"));
-        System.out.println(graphity.addStatusUpdate("4", "of"));
-        System.out.println(graphity.addStatusUpdate("3", "friend"));
-        System.out.println(graphity.addStatusUpdate("2", "dear"));
-        System.out.println(graphity.addStatusUpdate("2", "my"));
-        System.out.println(graphity.addStatusUpdate("3", "hello"));
+            System.out.println(graphity.addStatusUpdate("4", "mine"));
+            System.out.println(graphity.addStatusUpdate("4", "of"));
+            System.out.println(graphity.addStatusUpdate("3", "friend"));
+            System.out.println(graphity.addStatusUpdate("2", "dear"));
+            System.out.println(graphity.addStatusUpdate("2", "my"));
+            System.out.println(graphity.addStatusUpdate("3", "hello"));
 
-        System.out.println("-------");
-        System.out.println(graphity.readStatusUpdates("1", 15));
-        System.out.println("-------");
-        System.out.println(graphity.readStatusUpdates("2", 2));
-        System.out.println("-------");
-        System.out.println(graphity.readStatusUpdates("2", 1));
-        if (graphity.readStatusUpdates("3", 10).size() == 0) {
-            System.out.println("...");
+            System.out.println("-------");
+            System.out.println(graphity.readStatusUpdates("1", 15));
+            System.out.println("-------");
+            System.out.println(graphity.readStatusUpdates("2", 2));
+            System.out.println("-------");
+            System.out.println(graphity.readStatusUpdates("2", 1));
+            if (graphity.readStatusUpdates("3", 10).size() == 0) {
+                System.out.println("...");
+            }
+        } catch (IllegalUserIdException | UnknownReaderIdException e) {
+            e.printStackTrace();
         }
         graphDb.shutdown();
     }
