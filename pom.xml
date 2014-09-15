@@ -157,6 +157,7 @@
           <artifactSet>
             <includes>
               <include>de.metalcon:*</include>
+              <include>de.uniko.sebschlicht:*</include>
               <include>com.googlecode.json-simple:json-simple</include>
             </includes>
           </artifactSet>
