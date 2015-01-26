@@ -105,8 +105,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
         for (int i = 0; i < entries.length;) {
             sId = entries[i++];
             if (sIdFeed.equals(sId)) {
-                SOCIAL_GRAPH.readStatusUpdates(entries[i++],
-                        Integer.valueOf(entries[i++]), tx);
+                SOCIAL_GRAPH.readStatusUpdates(entries[i++], 15, tx);
             } else if (sIdFollow.equals(sId)) {
                 SOCIAL_GRAPH.addFollowship(entries[i++], entries[i++], tx);
             } else if (sIdPost.equals(sId)) {
