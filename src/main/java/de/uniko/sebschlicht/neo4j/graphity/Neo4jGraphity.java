@@ -44,6 +44,10 @@ public abstract class Neo4jGraphity extends Graphity {
         this.graphDb = graphDb;
     }
 
+    public Transaction beginTx() {
+        return graphDb.beginTx();
+    }
+
     @Override
     public void init() {
         // create user identifier index if not existing
@@ -167,22 +171,40 @@ public abstract class Neo4jGraphity extends Graphity {
     public boolean addFollowship(String idFollowing, String idFollowed)
             throws IllegalUserIdException {
         try (Transaction tx = graphDb.beginTx()) {
-            Node nFollowing = loadUser(idFollowing);
-            Node nFollowed = loadUser(idFollowed);
-
-            if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
-                tx.acquireWriteLock(nFollowing);
-                tx.acquireWriteLock(nFollowed);
-            } else {
-                tx.acquireWriteLock(nFollowed);
-                tx.acquireWriteLock(nFollowing);
-            }
-            if (addFollowship(nFollowing, nFollowed)) {
+            if (addFollowship(idFollowing, idFollowed, tx)) {
                 tx.success();
                 return true;
             }
             return false;
         }
+    }
+
+    /**
+     * Adds a followship without committing.
+     * 
+     * @param idFollowing
+     * @param idFollowed
+     * @param tx
+     *            current graph transaction
+     * @return
+     * @throws IllegalUserIdException
+     */
+    public boolean addFollowship(
+            String idFollowing,
+            String idFollowed,
+            Transaction tx) throws IllegalUserIdException {
+        Node nFollowing = loadUser(idFollowing);
+        Node nFollowed = loadUser(idFollowed);
+
+        if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
+            tx.acquireWriteLock(nFollowing);
+            tx.acquireWriteLock(nFollowed);
+        } else {
+            tx.acquireWriteLock(nFollowed);
+            tx.acquireWriteLock(nFollowing);
+        }
+
+        return addFollowship(nFollowing, nFollowed);
     }
 
     /**
@@ -201,28 +223,48 @@ public abstract class Neo4jGraphity extends Graphity {
     public boolean removeFollowship(String idFollowing, String idFollowed)
             throws UnknownFollowingIdException, UnknownFollowedIdException {
         try (Transaction tx = graphDb.beginTx()) {
-            Node nFollowing = findUser(idFollowing);
-            if (nFollowing == null) {
-                throw new UnknownFollowingIdException(idFollowing);
-            }
-            Node nFollowed = findUser(idFollowed);
-            if (nFollowed == null) {
-                throw new UnknownFollowedIdException(idFollowed);
-            }
-
-            if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
-                tx.acquireWriteLock(nFollowing);
-                tx.acquireWriteLock(nFollowed);
-            } else {
-                tx.acquireWriteLock(nFollowed);
-                tx.acquireWriteLock(nFollowing);
-            }
-            if (removeFollowship(nFollowing, nFollowed)) {
+            if (removeFollowship(idFollowing, idFollowed, tx)) {
                 tx.success();
                 return true;
             }
             return false;
         }
+    }
+
+    /**
+     * Removes a followship without committing.
+     * 
+     * @param idFollowing
+     * @param idFollowed
+     * @param tx
+     *            current graph transaction
+     * @return
+     * @throws UnknownFollowingIdException
+     * @throws UnknownFollowedIdException
+     */
+    public boolean removeFollowship(
+            String idFollowing,
+            String idFollowed,
+            Transaction tx) throws UnknownFollowingIdException,
+            UnknownFollowedIdException {
+        Node nFollowing = findUser(idFollowing);
+        if (nFollowing == null) {
+            throw new UnknownFollowingIdException(idFollowing);
+        }
+        Node nFollowed = findUser(idFollowed);
+        if (nFollowed == null) {
+            throw new UnknownFollowedIdException(idFollowed);
+        }
+
+        if (Long.valueOf(idFollowing) < Long.valueOf(idFollowed)) {
+            tx.acquireWriteLock(nFollowing);
+            tx.acquireWriteLock(nFollowed);
+        } else {
+            tx.acquireWriteLock(nFollowed);
+            tx.acquireWriteLock(nFollowing);
+        }
+
+        return removeFollowship(nFollowing, nFollowed);
     }
 
     /**
@@ -243,17 +285,32 @@ public abstract class Neo4jGraphity extends Graphity {
     public long addStatusUpdate(String idAuthor, String message)
             throws IllegalUserIdException {
         try (Transaction tx = graphDb.beginTx()) {
-            Node nAuthor = loadUser(idAuthor);
-            tx.acquireWriteLock(nAuthor);
-            StatusUpdate statusUpdate =
-                    new StatusUpdate(idAuthor, System.currentTimeMillis(),
-                            message);
-            long statusUpdateId = addStatusUpdate(nAuthor, statusUpdate);
+            long statusUpdateId = addStatusUpdate(idAuthor, message, tx);
             if (statusUpdateId != 0) {
                 tx.success();
             }
             return statusUpdateId;
         }
+    }
+
+    /**
+     * Adds a status update without committing.
+     * 
+     * @param idAuthor
+     * @param message
+     * @param tx
+     *            current graph transaction
+     * @return
+     * @throws IllegalUserIdException
+     */
+    public long
+        addStatusUpdate(String idAuthor, String message, Transaction tx)
+                throws IllegalUserIdException {
+        Node nAuthor = loadUser(idAuthor);
+        tx.acquireWriteLock(nAuthor);
+        StatusUpdate statusUpdate =
+                new StatusUpdate(idAuthor, System.currentTimeMillis(), message);
+        return addStatusUpdate(nAuthor, statusUpdate);
     }
 
     /**
@@ -274,12 +331,29 @@ public abstract class Neo4jGraphity extends Graphity {
             String idReader,
             int numStatusUpdates) throws UnknownReaderIdException {
         try (Transaction tx = graphDb.beginTx()) {
-            Node nReader = findUser(idReader);
-            if (nReader != null) {
-                return readStatusUpdates(nReader, numStatusUpdates);
-            }
-            throw new UnknownReaderIdException(idReader);
+            return readStatusUpdates(idReader, numStatusUpdates, tx);
         }
+    }
+
+    /**
+     * Reads a news feed without nested transactions.
+     * 
+     * @param idReader
+     * @param numStatusUpdates
+     * @param tx
+     *            current graph transaction
+     * @return
+     * @throws UnknownReaderIdException
+     */
+    public StatusUpdateList readStatusUpdates(
+            String idReader,
+            int numStatusUpdates,
+            Transaction tx) throws UnknownReaderIdException {
+        Node nReader = findUser(idReader);
+        if (nReader != null) {
+            return readStatusUpdates(nReader, numStatusUpdates);
+        }
+        throw new UnknownReaderIdException(idReader);
     }
 
     abstract protected StatusUpdateList readStatusUpdates(
