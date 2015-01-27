@@ -331,7 +331,9 @@ public abstract class Neo4jGraphity extends Graphity {
             String idReader,
             int numStatusUpdates) throws UnknownReaderIdException {
         try (Transaction tx = graphDb.beginTx()) {
-            return readStatusUpdates(idReader, numStatusUpdates, tx);
+            StatusUpdateList statusUpdates =
+                    readStatusUpdates(idReader, numStatusUpdates, tx);
+            return statusUpdates;
         }
     }
 

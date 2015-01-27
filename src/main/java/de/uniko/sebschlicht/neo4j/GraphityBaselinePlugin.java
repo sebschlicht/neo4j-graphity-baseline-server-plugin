@@ -1,5 +1,8 @@
 package de.uniko.sebschlicht.neo4j;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 import org.json.simple.JSONArray;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -85,44 +88,57 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     }
 
     @PluginTarget(GraphDatabaseService.class)
-    public boolean bootstrap(@Source GraphDatabaseService graphDb, @Parameter(
+    public String bootstrap(@Source GraphDatabaseService graphDb, @Parameter(
             name = "entries") String[] entries) throws NumberFormatException,
             UnknownReaderIdException, IllegalUserIdException,
             UnknownFollowingIdException, UnknownFollowedIdException {
         if (DEBUG) {
-            return true;
+            return "true";
         }
-        if (SOCIAL_GRAPH == null) {
-            init(graphDb);
-        }
-        Transaction tx = SOCIAL_GRAPH.beginTx();
-        int numPendingRequests = 0;
-        String sIdFeed = String.valueOf(RequestType.FEED.getId());
-        String sIdFollow = String.valueOf(RequestType.FOLLOW.getId());
-        String sIdPost = String.valueOf(RequestType.POST.getId());
-        String sIdUnfollow = String.valueOf(RequestType.UNFOLLOW.getId());
-        String sId;
-        for (int i = 0; i < entries.length;) {
-            sId = entries[i++];
-            if (sIdFeed.equals(sId)) {
-                SOCIAL_GRAPH.readStatusUpdates(entries[i++], 15, tx);
-            } else if (sIdFollow.equals(sId)) {
-                SOCIAL_GRAPH.addFollowship(entries[i++], entries[i++], tx);
-            } else if (sIdPost.equals(sId)) {
-                SOCIAL_GRAPH.addStatusUpdate(entries[i++], entries[i++], tx);
-            } else if (sIdUnfollow.equals(sId)) {
-                SOCIAL_GRAPH.removeFollowship(entries[i++], entries[i++], tx);
+        try {
+            if (SOCIAL_GRAPH == null) {
+                init(graphDb);
             }
-            numPendingRequests += 1;
-            if (numPendingRequests > 1000) {
+            Transaction tx = SOCIAL_GRAPH.beginTx();
+            int numPendingRequests = 0;
+            String sIdFeed = String.valueOf(RequestType.FEED.getId());
+            String sIdFollow = String.valueOf(RequestType.FOLLOW.getId());
+            String sIdPost = String.valueOf(RequestType.POST.getId());
+            String sIdUnfollow = String.valueOf(RequestType.UNFOLLOW.getId());
+            String sId;
+            for (int i = 0; i < entries.length;) {
+                sId = entries[i++];
+                if (sIdFeed.equals(sId)) {
+                    SOCIAL_GRAPH.readStatusUpdates(entries[i++], 15, tx);
+                } else if (sIdFollow.equals(sId)) {
+                    SOCIAL_GRAPH.addFollowship(entries[i++], entries[i++], tx);
+                } else if (sIdPost.equals(sId)) {
+                    SOCIAL_GRAPH
+                            .addStatusUpdate(entries[i++], entries[i++], tx);
+                } else if (sIdUnfollow.equals(sId)) {
+                    SOCIAL_GRAPH.removeFollowship(entries[i++], entries[i++],
+                            tx);
+                } else {
+                    throw new IllegalStateException();
+                }
+                numPendingRequests += 1;
+                if (numPendingRequests > 1000) {
+                    tx.success();
+                    tx.close();
+                    numPendingRequests = 0;
+                    tx = SOCIAL_GRAPH.beginTx();
+                }
+            }
+            if (numPendingRequests > 0) {
                 tx.success();
-                numPendingRequests = 0;
-                tx = SOCIAL_GRAPH.beginTx();
+                tx.close();
             }
+            return "true";
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            return sw.toString();
         }
-        if (numPendingRequests > 0) {
-            tx.success();
-        }
-        return true;
     }
 }

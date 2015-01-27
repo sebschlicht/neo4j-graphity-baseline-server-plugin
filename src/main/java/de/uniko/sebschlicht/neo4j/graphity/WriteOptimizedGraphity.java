@@ -107,9 +107,6 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
             Node nReader,
             int numStatusUpdates) {
         StatusUpdateList statusUpdates = new StatusUpdateList();
-        if (nReader == null) {
-            return statusUpdates;
-        }
         final TreeSet<UserPostIterator> postIterators =
                 new TreeSet<UserPostIterator>(new PostIteratorComparator());
 

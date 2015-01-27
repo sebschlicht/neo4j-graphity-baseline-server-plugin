@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.uniko.sebschlicht</groupId>
   <artifactId>neo4j-graphity-baseline-server-plugin</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
   <name>Neo4j Graphity Baseline Server Plugin</name>
   <description>Neo4j server plugin to access graphity baseline via REST API</description>
 
