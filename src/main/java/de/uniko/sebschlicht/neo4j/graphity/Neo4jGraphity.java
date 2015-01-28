@@ -204,7 +204,15 @@ public abstract class Neo4jGraphity extends Graphity {
             tx.acquireWriteLock(nFollowing);
         }
 
-        return addFollowship(nFollowing, nFollowed);
+        boolean result = addFollowship(nFollowing, nFollowed);
+        if (result) {
+            long msCrr = System.currentTimeMillis();
+            addStatusUpdate(nFollowing, new StatusUpdate(idFollowing, msCrr,
+                    "now follows " + idFollowed));
+            addStatusUpdate(nFollowed, new StatusUpdate(idFollowed, msCrr,
+                    "has new follower " + idFollowing));
+        }
+        return result;
     }
 
     /**
@@ -264,7 +272,15 @@ public abstract class Neo4jGraphity extends Graphity {
             tx.acquireWriteLock(nFollowing);
         }
 
-        return removeFollowship(nFollowing, nFollowed);
+        boolean result = removeFollowship(nFollowing, nFollowed);
+        if (result) {
+            long msCrr = System.currentTimeMillis();
+            addStatusUpdate(nFollowing, new StatusUpdate(idFollowing, msCrr,
+                    "did unfollow " + idFollowed));
+            addStatusUpdate(nFollowed, new StatusUpdate(idFollowed, msCrr,
+                    "was unfollowed by " + idFollowing));
+        }
+        return result;
     }
 
     /**

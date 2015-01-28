@@ -2,8 +2,9 @@ package de.uniko.sebschlicht.neo4j;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.json.simple.JSONArray;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.server.plugins.Parameter;
@@ -16,6 +17,7 @@ import de.uniko.sebschlicht.graphity.exception.UnknownFollowedIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowingIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
 import de.uniko.sebschlicht.neo4j.graphity.WriteOptimizedGraphity;
+import de.uniko.sebschlicht.socialnet.StatusUpdateList;
 import de.uniko.sebschlicht.socialnet.requests.RequestType;
 
 // TODO documentation
@@ -25,7 +27,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
 
     private static boolean INITIALIZED = false;
 
-    private static final int BOOTSTRAP_BLOCK_SIZE = 100000;
+    private static final int BOOTSTRAP_BLOCK_SIZE = 10000;
 
     private static WriteOptimizedGraphity SOCIAL_GRAPH;
 
@@ -78,15 +80,22 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     }
 
     @PluginTarget(GraphDatabaseService.class)
-    public String feeds(@Source GraphDatabaseService graphDb, @Parameter(
-            name = "reader") String idReader) throws UnknownReaderIdException {
+    public JsonRepresentation feeds(
+            @Source GraphDatabaseService graphDb,
+            @Parameter(
+                    name = "reader") String idReader)
+            throws UnknownReaderIdException {
+        Map<String, Object> result = new HashMap<String, Object>();
         if (DEBUG) {
-            return new JSONArray().toJSONString();
+            result.put("feeds", new StatusUpdateList());
+            return new JsonRepresentation(result);
         }
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }
-        return SOCIAL_GRAPH.readStatusUpdates(idReader, 15).toString();
+        result.put("feeds", SOCIAL_GRAPH.readStatusUpdates(idReader, 15)
+                .buildJsonArray());
+        return new JsonRepresentation(result);
     }
 
     @PluginTarget(GraphDatabaseService.class)
