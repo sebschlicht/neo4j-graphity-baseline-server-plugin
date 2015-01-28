@@ -25,6 +25,8 @@ public class GraphityBaselinePlugin extends ServerPlugin {
 
     private static boolean INITIALIZED = false;
 
+    private static final int BOOTSTRAP_BLOCK_SIZE = 100000;
+
     private static WriteOptimizedGraphity SOCIAL_GRAPH;
 
     private static synchronized void init(GraphDatabaseService graphDb) {
@@ -122,7 +124,7 @@ public class GraphityBaselinePlugin extends ServerPlugin {
                     throw new IllegalStateException();
                 }
                 numPendingRequests += 1;
-                if (numPendingRequests > 1000) {
+                if (numPendingRequests > BOOTSTRAP_BLOCK_SIZE) {
                     tx.success();
                     tx.close();
                     numPendingRequests = 0;
