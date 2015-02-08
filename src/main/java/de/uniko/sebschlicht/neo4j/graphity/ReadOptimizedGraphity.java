@@ -140,12 +140,12 @@ public class ReadOptimizedGraphity extends Neo4jGraphity {
     }
 
     /**
-     * update the ego network of a user
+     * update the ego networks of a user's followers
      * 
      * @param user
      *            user where changes have occurred
      */
-    private void updateEgoNetwork(final Node user) {
+    private void updateEgoNetworks(final Node user) {
         Node followedReplica, followingUser, lastPosterReplica;
         Node prevReplica, nextReplica;
         // loop through followers
@@ -210,7 +210,7 @@ public class ReadOptimizedGraphity extends Neo4jGraphity {
         pAuthor.setLastPostTimestamp(statusUpdate.getPublished());
 
         // update ego networks of status update author followers
-        updateEgoNetwork(nAuthor);
+        updateEgoNetworks(nAuthor);
 
         return pStatusUpdate.getIdentifier();
     }
