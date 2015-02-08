@@ -1,12 +1,18 @@
 package de.uniko.sebschlicht.neo4j.graphity;
 
+import java.io.File;
 import java.util.TreeSet;
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 
+import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
+import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
 import de.uniko.sebschlicht.neo4j.Walker;
 import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
@@ -293,5 +299,45 @@ public class ReadOptimizedGraphity extends Neo4jGraphity {
         final Node user = Walker.nextNode(userReplica, EdgeType.REPLICA);
         UserProxy pUser = new UserProxy(user);
         return pUser.getLastPostTimestamp();
+    }
+
+    public static void main(String[] args) throws Exception {
+        GraphDatabaseBuilder builder =
+                new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(
+                        new File("/tmp/testdb").getAbsolutePath()).setConfig(
+                        GraphDatabaseSettings.cache_type, "none");
+        GraphDatabaseService graphDb = builder.newGraphDatabase();
+        Neo4jGraphity graphity = new ReadOptimizedGraphity(graphDb);
+        try {
+            System.out.println(graphity.addFollowship("1", "2"));
+            System.out.println(graphity.addFollowship("1", "3"));
+            System.out.println(graphity.addFollowship("1", "4"));
+
+            System.out.println(graphity.addFollowship("2", "1"));
+            System.out.println(graphity.addFollowship("2", "4"));
+
+            System.out.println(graphity.addStatusUpdate("4", "mine"));
+            System.out.println(graphity.addStatusUpdate("4", "of"));
+            System.out.println(graphity.addStatusUpdate("3", "friend"));
+            System.out.println(graphity.addStatusUpdate("2", "dear"));
+            System.out.println(graphity.addStatusUpdate("2", "my"));
+            System.out.println(graphity.addStatusUpdate("3", "hello"));
+
+            System.out.println("-------");
+            System.out.println(graphity.readStatusUpdates("1", 15));
+            System.out.println("-------");
+            System.out.println(graphity.removeFollowship("1", "2"));
+            System.out.println(graphity.readStatusUpdates("1", 15));
+            System.out.println("-------");
+            System.out.println(graphity.readStatusUpdates("2", 2));
+            System.out.println("-------");
+            System.out.println(graphity.readStatusUpdates("2", 1));
+            if (graphity.readStatusUpdates("3", 10).size() == 0) {
+                System.out.println("...");
+            }
+        } catch (IllegalUserIdException | UnknownReaderIdException e) {
+            e.printStackTrace();
+        }
+        graphDb.shutdown();
     }
 }

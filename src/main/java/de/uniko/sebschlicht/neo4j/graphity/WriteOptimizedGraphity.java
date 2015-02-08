@@ -137,7 +137,7 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
         }
 
         //            // access single stream only
-        //            final UserProxy posterNode = new UserProxy(nSource);
+        //            final UserProxy posterNode = new UserProxy(nReader);
         //            UserPostIterator postIterator = new UserPostIterator(posterNode);
         //
         //            while ((statusUpdates.size() < numStatusUpdates)

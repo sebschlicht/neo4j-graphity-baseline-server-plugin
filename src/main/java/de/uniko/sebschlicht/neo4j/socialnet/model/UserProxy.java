@@ -59,7 +59,7 @@ public class UserProxy extends SocialNodeProxy {
     public long getLastPostTimestamp() {
         if (_lastPostTimestamp == -1) {
             _lastPostTimestamp =
-                    (long) node.getProperty(PROP_LAST_STREAM_UDPATE, 0);
+                    (long) node.getProperty(PROP_LAST_STREAM_UDPATE, 0L);
         }
         return _lastPostTimestamp;
     }
