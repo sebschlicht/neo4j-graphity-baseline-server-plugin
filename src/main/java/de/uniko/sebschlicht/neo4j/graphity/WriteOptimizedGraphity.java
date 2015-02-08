@@ -111,15 +111,15 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
 
         // loop through users followed
         UserProxy pCrrUser;
-        UserPostIterator postIterator;
+        UserPostIterator userPostIterator;
         for (Relationship relationship : nReader.getRelationships(
                 EdgeType.FOLLOWS, Direction.OUTGOING)) {
             // add post iterator
             pCrrUser = new UserProxy(relationship.getEndNode());
-            postIterator = new UserPostIterator(pCrrUser);
+            userPostIterator = new UserPostIterator(pCrrUser);
 
-            if (postIterator.hasNext()) {
-                postIterators.add(postIterator);
+            if (userPostIterator.hasNext()) {
+                postIterators.add(userPostIterator);
             }
         }
 
@@ -127,12 +127,12 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
         while ((statusUpdates.size() < numStatusUpdates)
                 && !postIterators.isEmpty()) {
             // add last recent status update
-            postIterator = postIterators.pollLast();
-            statusUpdates.add(postIterator.next().getStatusUpdate());
+            userPostIterator = postIterators.pollLast();
+            statusUpdates.add(userPostIterator.next().getStatusUpdate());
 
             // re-add iterator if not empty
-            if (postIterator.hasNext()) {
-                postIterators.add(postIterator);
+            if (userPostIterator.hasNext()) {
+                postIterators.add(userPostIterator);
             }
         }
 
