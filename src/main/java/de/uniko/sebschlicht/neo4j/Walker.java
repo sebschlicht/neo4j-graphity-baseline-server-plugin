@@ -31,4 +31,23 @@ public abstract class Walker {
         }
         return null;
     }
+
+    /**
+     * Walks backwards along an edge type to the previous node.
+     * 
+     * @param sourceNode
+     *            node to start from
+     * @param edgeType
+     *            edge type to walk along
+     * @return previous node the edge specified comes from<br>
+     *         <b>null</b> - if the start node has no such edge directing in
+     * @see org.neo4j.graphdb.Node.getSingleRelationship
+     */
+    public static Node previousNode(Node sourceNode, RelationshipType edgeType) {
+        for (Relationship edge : sourceNode.getRelationships(edgeType,
+                Direction.INCOMING)) {
+            return edge.getStartNode();
+        }
+        return null;
+    }
 }

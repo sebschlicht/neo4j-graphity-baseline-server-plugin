@@ -23,7 +23,6 @@ import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdate;
 import de.uniko.sebschlicht.socialnet.StatusUpdateList;
 
-// TODO documentation
 /**
  * Graphity implementation optimized for write requests
  * 
@@ -83,7 +82,8 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
         StatusUpdateProxy pStatusUpdate = new StatusUpdateProxy(crrUpdate);
         //TODO handle service overload
         pStatusUpdate.init();
-        pStatusUpdate.setAuthor(new UserProxy(nAuthor));
+        UserProxy pAuthor = new UserProxy(nAuthor);
+        pStatusUpdate.setAuthor(pAuthor);
         pStatusUpdate.setMessage(statusUpdate.getMessage());
         pStatusUpdate.setPublished(statusUpdate.getPublished());
 
@@ -96,8 +96,7 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
 
         // add reference from user to current update node
         nAuthor.createRelationshipTo(crrUpdate, EdgeType.PUBLISHED);
-        nAuthor.setProperty(UserProxy.PROP_LAST_STREAM_UDPATE,
-                statusUpdate.getPublished());
+        pAuthor.setLastPostTimestamp(statusUpdate.getPublished());
 
         return pStatusUpdate.getIdentifier();
     }
