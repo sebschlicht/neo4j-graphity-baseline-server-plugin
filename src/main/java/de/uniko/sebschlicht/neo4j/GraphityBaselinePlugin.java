@@ -126,9 +126,9 @@ public class GraphityBaselinePlugin extends ServerPlugin {
 
     @PluginTarget(GraphDatabaseService.class)
     public String bootstrap(@Source GraphDatabaseService graphDb, @Parameter(
-            name = "users") long[] aUserIds, @Parameter(
+            name = "userIds") long[] aUserIds, @Parameter(
             name = "subscriptions") String[] aSubscriptions, @Parameter(
-            name = "posts") int[] aNumPosts) throws NumberFormatException,
+            name = "numPosts") int[] aNumPosts) throws NumberFormatException,
             UnknownReaderIdException, IllegalUserIdException,
             UnknownFollowingIdException, UnknownFollowedIdException {
         if (DEBUG) {
@@ -144,9 +144,9 @@ public class GraphityBaselinePlugin extends ServerPlugin {
             /**
              * expected format:
              * {
-             * "users": [1,2,3,4,5],
-             * "subscriptions": ["", "1,3,4", "1,4", "1,3", "4"],
-             * "posts": [1, 6, 5, 18, 4]
+             * "userIds": [1,2,3,4,5],// only users we need
+             * "subscriptions": ["", "1,3,4", "1,4", "1,3", "4"],// even if none
+             * "posts": [0,6,5,18,4]// even if none
              * }
              */
             int postLength = 140;
