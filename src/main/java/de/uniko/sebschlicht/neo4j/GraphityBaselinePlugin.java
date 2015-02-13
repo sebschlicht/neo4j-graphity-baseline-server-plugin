@@ -4,8 +4,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -16,9 +18,13 @@ import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowedIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowingIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
+import de.uniko.sebschlicht.neo4j.bootstrap.User;
+import de.uniko.sebschlicht.neo4j.bootstrap.UserManager;
 import de.uniko.sebschlicht.neo4j.graphity.WriteOptimizedGraphity;
+import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
+import de.uniko.sebschlicht.neo4j.socialnet.model.StatusUpdateProxy;
+import de.uniko.sebschlicht.neo4j.socialnet.model.UserProxy;
 import de.uniko.sebschlicht.socialnet.StatusUpdateList;
-import de.uniko.sebschlicht.socialnet.requests.RequestType;
 
 // TODO documentation
 public class GraphityBaselinePlugin extends ServerPlugin {
@@ -28,6 +34,26 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     private static boolean INITIALIZED = false;
 
     private static final int BOOTSTRAP_BLOCK_SIZE = 10000;
+
+    protected static final Random RANDOM = new Random();
+
+    protected static final char[] POST_SYMBOLS;
+    static {
+        StringBuilder postSymbols = new StringBuilder();
+        // numbers
+        for (char number = '0'; number <= '9'; ++number) {
+            postSymbols.append(number);
+        }
+        // lower case letters
+        for (char letter = 'a'; letter <= 'z'; ++letter) {
+            postSymbols.append(letter);
+        }
+        // upper case letters
+        for (char letter = 'a'; letter <= 'z'; ++letter) {
+            postSymbols.append(Character.toUpperCase(letter));
+        }
+        POST_SYMBOLS = postSymbols.toString().toCharArray();
+    }
 
     private static WriteOptimizedGraphity SOCIAL_GRAPH;
 
@@ -100,7 +126,9 @@ public class GraphityBaselinePlugin extends ServerPlugin {
 
     @PluginTarget(GraphDatabaseService.class)
     public String bootstrap(@Source GraphDatabaseService graphDb, @Parameter(
-            name = "entries") String[] entries) throws NumberFormatException,
+            name = "users") long[] aUserIds, @Parameter(
+            name = "subscriptions") String[] aSubscriptions, @Parameter(
+            name = "posts") int[] aNumPosts) throws NumberFormatException,
             UnknownReaderIdException, IllegalUserIdException,
             UnknownFollowingIdException, UnknownFollowedIdException {
         if (DEBUG) {
@@ -112,34 +140,124 @@ public class GraphityBaselinePlugin extends ServerPlugin {
             }
             Transaction tx = SOCIAL_GRAPH.beginTx();
             int numPendingRequests = 0;
-            String sIdFeed = String.valueOf(RequestType.FEED.getId());
-            String sIdFollow = String.valueOf(RequestType.FOLLOW.getId());
-            String sIdPost = String.valueOf(RequestType.POST.getId());
-            String sIdUnfollow = String.valueOf(RequestType.UNFOLLOW.getId());
-            String sId;
-            for (int i = 0; i < entries.length;) {
-                sId = entries[i++];
-                if (sIdFeed.equals(sId)) {
-                    SOCIAL_GRAPH.readStatusUpdates(entries[i++], 15, tx);
-                } else if (sIdFollow.equals(sId)) {
-                    SOCIAL_GRAPH.addFollowship(entries[i++], entries[i++], tx);
-                } else if (sIdPost.equals(sId)) {
-                    SOCIAL_GRAPH
-                            .addStatusUpdate(entries[i++], entries[i++], tx);
-                } else if (sIdUnfollow.equals(sId)) {
-                    SOCIAL_GRAPH.removeFollowship(entries[i++], entries[i++],
-                            tx);
-                } else {
-                    throw new IllegalStateException();
+
+            /**
+             * expected format:
+             * {
+             * "users": [1,2,3,4,5],
+             * "subscriptions": ["", "1,3,4", "1,4", "1,3", "4"],
+             * "posts": [1, 6, 5, 18, 4]
+             * }
+             */
+            int postLength = 140;
+            UserManager users = new UserManager();
+            users.setUserIds(aUserIds);
+            User user;
+
+            // load subscriptions
+            long idFollowed;
+            for (int i = 0; i < aSubscriptions.length; ++i) {
+                user = users.loadUserByIndex(i);// will add user
+                String[] aUserSubscriptions = aSubscriptions[i].split(",");
+                if (aUserSubscriptions.length == 0) {
+                    continue;
                 }
-                numPendingRequests += 1;
-                if (numPendingRequests > BOOTSTRAP_BLOCK_SIZE) {
+                User[] subscriptions = new User[aUserSubscriptions.length];
+                for (int iFollowed = 0; iFollowed < aUserSubscriptions.length; ++iFollowed) {
+                    idFollowed = Long.valueOf(aUserSubscriptions[iFollowed]);
+                    subscriptions[iFollowed] = users.loadUser(idFollowed);// can add user
+                }
+                user.setSubscriptions(subscriptions);
+            }
+
+            // add vertices to graph
+            // add posts
+            int numUserPosts;
+            Node nPost;
+            long tsLastPost = 0;
+            StatusUpdateProxy pStatusUpdate;
+            for (int i = 0; i < aNumPosts.length; ++i) {
+                user = users.loadUserByIndex(i);// can add user
+                numUserPosts = aNumPosts[i];
+                if (numUserPosts == 0) {
+                    continue;
+                }
+                Node[] userPostNodes = new Node[numUserPosts];
+                for (int iPost = 0; iPost < numUserPosts; ++iPost) {
+                    nPost = graphDb.createNode(NodeType.UPDATE);
+                    pStatusUpdate = new StatusUpdateProxy(nPost);
+                    tsLastPost = System.currentTimeMillis();
+                    pStatusUpdate.initNode(tsLastPost,
+                            generatePostMessage(postLength));
+                    userPostNodes[iPost] = nPost;
+
+                    if (++numPendingRequests >= BOOTSTRAP_BLOCK_SIZE) {
+                        tx.success();
+                        tx.close();
+                        tx = SOCIAL_GRAPH.beginTx();
+                    }
+                }
+                user.setPostNodes(userPostNodes);
+                user.setLastPostTimestamp(tsLastPost);
+            }
+            // add users
+            Node nUser;
+            for (long id : aUserIds) {
+                user = users.loadUser(id);// can not add user
+                nUser = graphDb.createNode(NodeType.USER);
+                user.setNode(nUser);
+
+                if (++numPendingRequests >= BOOTSTRAP_BLOCK_SIZE) {
                     tx.success();
                     tx.close();
-                    numPendingRequests = 0;
                     tx = SOCIAL_GRAPH.beginTx();
                 }
             }
+
+            // add edges to graph
+            UserProxy pAuthor;
+            // add post edges
+            for (long id : aUserIds) {
+                user = users.loadUser(id);// can not add user
+                if (user.getPostNodes() == null) {
+                    continue;
+                }
+                pAuthor = new UserProxy(user.getNode());
+                for (Node postNode : user.getPostNodes()) {
+                    pStatusUpdate = new StatusUpdateProxy(postNode);
+                    pAuthor.linkStatusUpdate(pStatusUpdate);
+
+                    if (++numPendingRequests >= BOOTSTRAP_BLOCK_SIZE) {
+                        tx.success();
+                        tx.close();
+                        tx = SOCIAL_GRAPH.beginTx();
+                    }
+                }
+                pAuthor.setLastPostTimestamp(user.getLastPostTimestamp());
+                numPendingRequests += 1;
+            }
+            // add subscription edges
+            for (long id : aUserIds) {
+                user = users.loadUser(id);// can not add user
+                if (user.getSubscriptions() == null) {
+                    continue;
+                }
+                if (SOCIAL_GRAPH instanceof WriteOptimizedGraphity) {
+                    for (User followed : user.getSubscriptions()) {
+                        SOCIAL_GRAPH.doAddFollowship(user.getNode(),
+                                followed.getNode());
+
+                        if (++numPendingRequests >= BOOTSTRAP_BLOCK_SIZE) {
+                            tx.success();
+                            tx.close();
+                            tx = SOCIAL_GRAPH.beginTx();
+                        }
+                    }
+                }
+            }
+
+            // TODO build Graphity index if using ReadOptimizedGraphity
+
             if (numPendingRequests > 0) {
                 tx.success();
                 tx.close();
@@ -151,5 +269,17 @@ public class GraphityBaselinePlugin extends ServerPlugin {
             e.printStackTrace(pw);
             return sw.toString();
         }
+    }
+
+    protected static String generatePostMessage(int length) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < length; ++i) {
+            builder.append(getRandomPostChar());
+        }
+        return builder.toString();
+    }
+
+    protected static char getRandomPostChar() {
+        return POST_SYMBOLS[RANDOM.nextInt(POST_SYMBOLS.length)];
     }
 }

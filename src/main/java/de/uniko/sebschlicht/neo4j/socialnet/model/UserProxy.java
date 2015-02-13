@@ -1,6 +1,10 @@
 package de.uniko.sebschlicht.neo4j.socialnet.model;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+
+import de.uniko.sebschlicht.neo4j.Walker;
+import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
 
 /**
  * node proxy for an user that can act in the social network
@@ -42,6 +46,42 @@ public class UserProxy extends SocialNodeProxy {
             Node nUser) {
         super(nUser);
         _lastPostTimestamp = -1;
+    }
+
+    /**
+     * Adds a status update to the user.<br>
+     * Links the status update node to the user node and to previous updates
+     * if any.
+     * Updates the author node's last post timestamp.
+     * 
+     * @param pStatusUpdate
+     *            proxy of the new status update
+     */
+    public void addStatusUpdate(StatusUpdateProxy pStatusUpdate) {
+        linkStatusUpdate(pStatusUpdate);
+        // update last post timestamp
+        setLastPostTimestamp(pStatusUpdate.getPublished());
+    }
+
+    /**
+     * Links a status update node to the user node and to previous updates if
+     * any.
+     * 
+     * @param pStatusUpdate
+     *            proxy of the status update
+     */
+    public void linkStatusUpdate(StatusUpdateProxy pStatusUpdate) {
+        // get last recent status update
+        Node lastUpdate = Walker.nextNode(node, EdgeType.PUBLISHED);
+        // update references to previous status update (if existing)
+        if (lastUpdate != null) {
+            node.getSingleRelationship(EdgeType.PUBLISHED, Direction.OUTGOING)
+                    .delete();
+            pStatusUpdate.getNode().createRelationshipTo(lastUpdate,
+                    EdgeType.PUBLISHED);
+        }
+        // add reference from user to current update node
+        node.createRelationshipTo(pStatusUpdate.getNode(), EdgeType.PUBLISHED);
     }
 
     public String getIdentifier() {

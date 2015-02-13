@@ -13,7 +13,6 @@ import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 
 import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
-import de.uniko.sebschlicht.neo4j.Walker;
 import de.uniko.sebschlicht.neo4j.socialnet.EdgeType;
 import de.uniko.sebschlicht.neo4j.socialnet.NodeType;
 import de.uniko.sebschlicht.neo4j.socialnet.model.PostIteratorComparator;
@@ -45,10 +44,13 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
                 return false;
             }
         }
+        doAddFollowship(nFollowing, nFollowed);
+        return true;
+    }
 
+    public void doAddFollowship(Node nFollowing, Node nFollowed) {
         // create star topology
         nFollowing.createRelationshipTo(nFollowed, EdgeType.FOLLOWS);
-        return true;
     }
 
     @Override
@@ -74,29 +76,16 @@ public class WriteOptimizedGraphity extends Neo4jGraphity {
 
     @Override
     protected long addStatusUpdate(Node nAuthor, StatusUpdate statusUpdate) {
-        // get last recent status update
-        Node lastUpdate = Walker.nextNode(nAuthor, EdgeType.PUBLISHED);
-
         // create new status update node and fill via proxy
         Node crrUpdate = graphDb.createNode(NodeType.UPDATE);
         StatusUpdateProxy pStatusUpdate = new StatusUpdateProxy(crrUpdate);
         //TODO handle service overload
-        pStatusUpdate.init();
+        pStatusUpdate.initNode(statusUpdate.getPublished(),
+                statusUpdate.getMessage());
+
+        // add status update to user (link node, update user)
         UserProxy pAuthor = new UserProxy(nAuthor);
-        pStatusUpdate.setAuthor(pAuthor);
-        pStatusUpdate.setMessage(statusUpdate.getMessage());
-        pStatusUpdate.setPublished(statusUpdate.getPublished());
-
-        // update references to previous status update (if existing)
-        if (lastUpdate != null) {
-            nAuthor.getSingleRelationship(EdgeType.PUBLISHED,
-                    Direction.OUTGOING).delete();
-            crrUpdate.createRelationshipTo(lastUpdate, EdgeType.PUBLISHED);
-        }
-
-        // add reference from user to current update node
-        nAuthor.createRelationshipTo(crrUpdate, EdgeType.PUBLISHED);
-        pAuthor.setLastPostTimestamp(statusUpdate.getPublished());
+        pAuthor.addStatusUpdate(pStatusUpdate);
 
         return pStatusUpdate.getIdentifier();
     }

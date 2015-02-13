@@ -57,19 +57,23 @@ public class StatusUpdateProxy extends SocialNodeProxy {
     }
 
     /**
-     * initialize the status update node<br>
-     * necessary if the proxy is for a new status update
+     * Initialized the status update node wrapped by this proxy.
+     * Sets node properties only.
      * 
-     * @return true - if the status update was successfully created<br>
-     *         false - if status update creation failed due to service overload
+     * @param published
+     *            timestamp of publishing
+     * @param message
+     *            status update content
      */
-    public boolean init() {
+    public void initNode(long published, String message) {
         try {
-            setIdentifier(Muid.create(UidType.DISC).getValue());
-            return true;
+            long identifier = Muid.create(UidType.DISC).getValue();
+            setIdentifier(identifier);
         } catch (ServiceOverloadedException e) {
-            return false;
+            throw new IllegalStateException(e);
         }
+        setPublished(published);
+        setMessage(message);
     }
 
     public void setAuthor(UserProxy pAuthor) {

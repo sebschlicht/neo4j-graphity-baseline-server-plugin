@@ -186,28 +186,16 @@ public class ReadOptimizedGraphity extends Neo4jGraphity {
 
     @Override
     protected long addStatusUpdate(Node nAuthor, StatusUpdate statusUpdate) {
-        // get last recent status update
-        final Node lastUpdate = Walker.nextNode(nAuthor, EdgeType.PUBLISHED);
-
         // create new status update node and fill via proxy
         Node crrUpdate = graphDb.createNode(NodeType.UPDATE);
         StatusUpdateProxy pStatusUpdate = new StatusUpdateProxy(crrUpdate);
         //TODO handle service overload
-        pStatusUpdate.init();
-        UserProxy pAuthor = new UserProxy(nAuthor);
-        pStatusUpdate.setAuthor(pAuthor);
-        pStatusUpdate.setMessage(statusUpdate.getMessage());
-        pStatusUpdate.setPublished(statusUpdate.getPublished());
+        pStatusUpdate.initNode(statusUpdate.getPublished(),
+                statusUpdate.getMessage());
 
-        // update references to previous status update (if existing)
-        if (lastUpdate != null) {
-            nAuthor.getSingleRelationship(EdgeType.PUBLISHED,
-                    Direction.OUTGOING).delete();
-            crrUpdate.createRelationshipTo(lastUpdate, EdgeType.PUBLISHED);
-        }
-        // add reference from user to current update node
-        nAuthor.createRelationshipTo(crrUpdate, EdgeType.PUBLISHED);
-        pAuthor.setLastPostTimestamp(statusUpdate.getPublished());
+        // add status update to user (link node, update user)
+        UserProxy pAuthor = new UserProxy(nAuthor);
+        pAuthor.addStatusUpdate(pStatusUpdate);
 
         // update ego networks of status update author followers
         updateEgoNetworks(nAuthor);
