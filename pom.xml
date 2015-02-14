@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.uniko.sebschlicht</groupId>
   <artifactId>neo4j-graphity-baseline-server-plugin</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>Neo4j Graphity Baseline Server Plugin</name>
   <description>Neo4j server plugin to access graphity baseline via REST API</description>
 
@@ -28,16 +28,21 @@
     <maven.ssh-extension.version>2.6</maven.ssh-extension.version>
 
     <!-- dependency versions: testing -->
-    <junit.version>4.9</junit.version>
+    <junit.version>4.11</junit.version>
 
     <!-- dependency versions: production -->
     <neo4j.version>2.1.2</neo4j.version>
-    <metalcon.muid>0.4.2</metalcon.muid>
-    <socialnet.version>0.1.4-SNAPSHOT</socialnet.version>
-    <json.version>1.1</json.version>
+    <graphity.version>0.0.1-SNAPSHOT</graphity.version>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j</artifactId>
@@ -49,19 +54,9 @@
       <version>${neo4j.version}</version>
     </dependency>
     <dependency>
-      <groupId>de.metalcon</groupId>
-      <artifactId>muid</artifactId>
-      <version>${metalcon.muid}</version>
-    </dependency>
-    <dependency>
       <groupId>de.uniko.sebschlicht</groupId>
-      <artifactId>socialnet</artifactId>
-      <version>${socialnet.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.googlecode.json-simple</groupId>
-      <artifactId>json-simple</artifactId>
-      <version>${json.version}</version>
+      <artifactId>graphity-neo4j</artifactId>
+      <version>${graphity.version}</version>
     </dependency>
   </dependencies>
 
@@ -156,8 +151,8 @@
           <finalName>uber-${artifactId}-${version}</finalName>
           <artifactSet>
             <includes>
-              <include>de.metalcon:*</include>
               <include>de.uniko.sebschlicht:*</include>
+              <include>de.metalcon:*</include>
               <include>com.googlecode.json-simple:json-simple</include>
             </includes>
           </artifactSet>
