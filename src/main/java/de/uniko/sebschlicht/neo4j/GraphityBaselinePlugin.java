@@ -12,7 +12,6 @@ import org.neo4j.server.plugins.Source;
 import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowedIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowingIdException;
-import de.uniko.sebschlicht.graphity.exception.UnknownReaderIdException;
 import de.uniko.sebschlicht.graphity.neo4j.Neo4jGraphity;
 import de.uniko.sebschlicht.graphity.neo4j.impl.ReadOptimizedGraphity;
 import de.uniko.sebschlicht.socialnet.StatusUpdateList;
@@ -78,18 +77,24 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     public JsonRepresentation feeds(
             @Source GraphDatabaseService graphDb,
             @Parameter(
-                    name = "reader") String idReader)
-            throws UnknownReaderIdException {
+                    name = "reader") String idReader) {
         Map<String, Object> result = new HashMap<String, Object>();
-        if (DEBUG) {
-            result.put("feeds", new StatusUpdateList());
+        try {
+            if (DEBUG) {
+                result.put("feeds", new StatusUpdateList());
+                return new JsonRepresentation(result);
+            }
+            if (SOCIAL_GRAPH == null) {
+                init(graphDb);
+            }
+            result.put("feeds", SOCIAL_GRAPH.readStatusUpdates(idReader, 15)
+                    .buildJsonArray());
+            return new JsonRepresentation(result);
+        } catch (Exception e) {
+            result.clear();
+            result.put("error", e.getMessage());
+            e.printStackTrace();
             return new JsonRepresentation(result);
         }
-        if (SOCIAL_GRAPH == null) {
-            init(graphDb);
-        }
-        result.put("feeds", SOCIAL_GRAPH.readStatusUpdates(idReader, 15)
-                .buildJsonArray());
-        return new JsonRepresentation(result);
     }
 }
