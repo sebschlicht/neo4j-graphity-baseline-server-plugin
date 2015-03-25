@@ -13,7 +13,7 @@ import de.uniko.sebschlicht.graphity.exception.IllegalUserIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowedIdException;
 import de.uniko.sebschlicht.graphity.exception.UnknownFollowingIdException;
 import de.uniko.sebschlicht.graphity.neo4j.Neo4jGraphity;
-import de.uniko.sebschlicht.graphity.neo4j.impl.ReadOptimizedGraphity;
+import de.uniko.sebschlicht.graphity.neo4j.impl.WriteOptimizedGraphity;
 import de.uniko.sebschlicht.socialnet.StatusUpdateList;
 
 // TODO documentation
@@ -28,9 +28,21 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     private static synchronized void init(GraphDatabaseService graphDb) {
         if (!INITIALIZED) {
             INITIALIZED = true;
-            SOCIAL_GRAPH = new ReadOptimizedGraphity(graphDb);
+            SOCIAL_GRAPH = new WriteOptimizedGraphity(graphDb);
             SOCIAL_GRAPH.init();
         }
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
+    public boolean user(@Source GraphDatabaseService graphDb, @Parameter(
+            name = "id") long id) throws IllegalUserIdException {
+        if (DEBUG) {
+            return true;
+        }
+        if (SOCIAL_GRAPH == null) {
+            init(graphDb);
+        }
+        return SOCIAL_GRAPH.addUser(String.valueOf(id));
     }
 
     @PluginTarget(GraphDatabaseService.class)
