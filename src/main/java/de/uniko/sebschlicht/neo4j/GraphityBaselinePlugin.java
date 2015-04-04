@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
@@ -24,6 +25,10 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     private static boolean INITIALIZED = false;
 
     private static Neo4jGraphity SOCIAL_GRAPH = null;
+
+    private static final int NUM_MAX_RETRIES = 3;
+
+    private static final long DELAY_DEADLOCK = 100;
 
     private static synchronized void init(GraphDatabaseService graphDb) {
         if (!INITIALIZED) {
@@ -48,14 +53,32 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     public boolean follow(@Source GraphDatabaseService graphDb, @Parameter(
             name = "following") String idFollowing, @Parameter(
-            name = "followed") String idFollowed) throws IllegalUserIdException {
+            name = "followed") String idFollowed) throws Exception {
         if (DEBUG) {
             return true;
         }
         if (SOCIAL_GRAPH == null) {
             init(graphDb);
         }
-        return SOCIAL_GRAPH.addFollowship(idFollowing, idFollowed);
+        int numRetries = 0;
+        Exception e = null;
+        do {
+            try {
+                return SOCIAL_GRAPH.addFollowship(idFollowing, idFollowed);
+            } catch (DeadlockDetectedException e1) {
+                if (numRetries < NUM_MAX_RETRIES) {
+                    numRetries += 1;
+                    try {
+                        Thread.sleep(DELAY_DEADLOCK);
+                    } catch (InterruptedException e2) {
+                        // ignore
+                    }
+                } else {
+                    e = e1;
+                }
+            }
+        } while (numRetries < NUM_MAX_RETRIES);
+        throw e;
     }
 
     @PluginTarget(GraphDatabaseService.class)
