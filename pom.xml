@@ -32,7 +32,7 @@
 
     <!-- dependency versions: production -->
     <neo4j.version>2.1.2</neo4j.version>
-    <graphity.version>0.2.0-SNAPSHOT</graphity.version>
+    <graphity.version>0.3.0-SNAPSHOT</graphity.version>
   </properties>
 
   <dependencies>

@@ -85,7 +85,8 @@ public class GraphityBaselinePlugin extends ServerPlugin {
     public boolean unfollow(@Source GraphDatabaseService graphDb, @Parameter(
             name = "following") String idFollowing, @Parameter(
             name = "followed") String idFollowed)
-            throws UnknownFollowingIdException, UnknownFollowedIdException {
+            throws IllegalUserIdException, UnknownFollowingIdException,
+            UnknownFollowedIdException {
         if (DEBUG) {
             return true;
         }
